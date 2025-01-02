@@ -1,18 +1,19 @@
-fastapi==0.104.1
-uvicorn==0.24.0  # Servidor ASGI para desenvolvimento local
-motor==3.3.1  # Driver assíncrono MongoDB
-pymongo==4.5.0
-python-jose[cryptography]==3.3.0
+fastapi==0.109.0
+uvicorn==0.27.0  # Servidor ASGI para desenvolvimento local
+motor==3.3.2  # Driver assíncrono MongoDB
+pymongo==4.6.1
+python-jose==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
-pydantic==2.5.2
+pydantic==2.5.3
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
-azure-functions==1.17.0
-opencensus-ext-azure==1.1.9  # Para Application Insights
+azure-functions==1.18.0
+opencensus==0.11.3  # Para Application Insights
 azure-identity==1.15.0
 azure-keyvault-secrets==4.7.0
 gunicorn==21.2.0  # Para produção no Azure Web App
-pytest==8.3.4
-pytest-cov==6.0.0
-httpx==0.27.0  # Necessário para TestClient do FastAPI
+pytest==8.0.0
+pytest-cov==4.1.0
+httpx==0.26.0  # Necessário para TestClient do FastAPI
+email-validator==2.1.0.post1

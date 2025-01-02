@@ -20,7 +20,13 @@ else:
     MONGODB_URL = settings.MONGODB_URL
 
 # Cliente MongoDB
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
+client = motor.motor_asyncio.AsyncIOMotorClient(
+    MONGODB_URL,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=10000,
+    maxPoolSize=1
+)
 database = client[settings.DATABASE_NAME]
 
 # Coleções
@@ -31,16 +37,23 @@ transacoes = database.transacoes
 notificacoes = database.notificacoes
 relatorios = database.relatorios
 
-# Função para inicializar dados de exemplo em ambiente local
+# Função para inicializar o banco de dados
 async def init_db():
-    if settings.ENVIRONMENT == "local":
-        # Verifica se já existem dados
-        if await acoes.count_documents({}) == 0:
-            # Insere algumas ações de exemplo
-            await acoes.insert_many([
-                {"nome": "AAPL", "preco": 150.0, "qtd": 1000},
-                {"nome": "GOOGL", "preco": 2800.0, "qtd": 500},
-                {"nome": "MSFT", "preco": 300.0, "qtd": 800},
-                {"nome": "AMZN", "preco": 3300.0, "qtd": 300},
-            ])
-            print("Dados de exemplo inseridos com sucesso!")
+    try:
+        # Criar índices necessários
+        await usuarios.create_index("email", unique=True)
+        await acoes.create_index("nome", unique=True)
+        
+        # Em ambiente local, inserir dados de exemplo
+        if settings.ENVIRONMENT == "local":
+            if await acoes.count_documents({}) == 0:
+                await acoes.insert_many([
+                    {"nome": "AAPL", "preco": 150.0, "qtd": 1000},
+                    {"nome": "GOOGL", "preco": 2800.0, "qtd": 500},
+                    {"nome": "MSFT", "preco": 300.0, "qtd": 800},
+                    {"nome": "AMZN", "preco": 3300.0, "qtd": 300},
+                ])
+                print("Dados de exemplo inseridos com sucesso!")
+    except Exception as e:
+        print(f"Erro ao inicializar banco de dados: {e}")
+        # Não levanta a exceção para permitir que a aplicação continue mesmo se houver erro na inicialização
