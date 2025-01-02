@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# Garantir que estamos no diretório correto
+# Navegar para o diretório do aplicativo
 cd /home/site/wwwroot
 
-# Dar permissões de execução ao script
-chmod +x startup.sh
-
-# Configurar ambiente Python
+# Configurar variáveis de ambiente
 export PYTHONPATH=/home/site/wwwroot
 export PORT=8000
+
+# Criar e ativar ambiente virtual
+python -m venv antenv
+source antenv/bin/activate
+
+# Atualizar pip
+python -m pip install --upgrade pip
 
 # Instalar dependências
 pip install -r requirements.txt
 
-# Configurar variáveis de ambiente
-export ENVIRONMENT="prod"
-export MONGODB_URL="mongodb://localhost:27017"
-
 # Iniciar a aplicação com Gunicorn
-exec gunicorn app.main:app --bind=0.0.0.0:8000 --worker-class uvicorn.workers.UvicornWorker --timeout 600
+exec gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --worker-class uvicorn.workers.UvicornWorker
