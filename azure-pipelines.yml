@@ -1,5 +1,15 @@
 trigger:
-  - main
+  branches:
+    include:
+    - main
+    - master
+  paths:
+    include:
+    - '*'
+    exclude:
+    - 'README.md'
+    - '.gitignore'
+    - 'docs/*'
 
 variables:
   # Azure Resource Manager connection created during pipeline creation

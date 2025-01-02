@@ -13,3 +13,6 @@ opencensus-ext-azure==1.1.9  # Para Application Insights
 azure-identity==1.15.0
 azure-keyvault-secrets==4.7.0
 gunicorn==21.2.0  # Para produção no Azure Web App
+pytest==8.3.4
+pytest-cov==6.0.0
+httpx==0.27.0  # Necessário para TestClient do FastAPI
