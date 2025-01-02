@@ -29,15 +29,13 @@ logger.info(f"Ambiente: {settings.ENVIRONMENT}")
 logger.info("Tentando conectar ao MongoDB...")
 
 try:
-    # Cliente MongoDB com configurações otimizadas para Cosmos DB
+    # Cliente MongoDB com configurações simplificadas
     client = motor.motor_asyncio.AsyncIOMotorClient(
         MONGODB_URL,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=20000,
-        maxPoolSize=1,
-        retryWrites=False,
-        ssl=True
+        serverSelectionTimeoutMS=30000,
+        connectTimeoutMS=30000,
+        socketTimeoutMS=30000,
+        tlsAllowInvalidCertificates=True  # Necessário para alguns ambientes Azure
     )
     database = client[settings.DATABASE_NAME]
     logger.info("Conexão com MongoDB estabelecida com sucesso!")
