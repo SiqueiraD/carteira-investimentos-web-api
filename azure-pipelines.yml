@@ -9,7 +9,7 @@ variables:
   webAppName: 'webapp-investimentos-api-003'
   
   # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  vmImageName: 'windows-latest'
 
   # Python version
   pythonVersion: '3.11'
