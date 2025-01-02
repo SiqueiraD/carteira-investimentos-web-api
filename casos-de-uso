@@ -1,0 +1,33 @@
+Casos de uso
+
+Caso de Uso 1: Registro e Login de Usuário
+
+Ator Primário: Usuário (novo cliente ou investidor)
+
+Descrição: O usuário acessa o sistema e solicita o registro. O sistema solicita os dados do usuário: nome, email, senha e define automaticamente o tipoUsuario como "comum". O método registrar() valida os dados fornecidos e salva as informações no banco de dados. Após o registro, o usuário utiliza o método login() para acessar o sistema, fornecendo email e senha. Caso as credenciais estejam corretas, o sistema autentica o usuário, que pode visualizar a interface de sua carteira.
+
+Fluxo Alternativo: Se o email já estiver cadastrado, o sistema retorna uma mensagem de erro.
+
+Caso de Uso 2: Compra de Ações
+
+Ator Primário: Usuário (tipo "comum")
+
+Descrição: O usuário seleciona uma ação disponível no sistema. O método operarAcao() é chamado para validar se a quantidade solicitada está disponível e o usuário tenha o saldo necessário. Caso a quantidade solicitada seja válida e o limite de qtdMaxAcoes e qtdMaxValor da carteira não seja excedido: A transação é registrada no histórico através do método registrarTransacao() com o tipo “compra". A quantidade da ação na classe Carteira é atualizada. O número de ações disponíveis na classe Ação é reduzido. O usuário tem debitado de seu saldo o valor referente a compra. Uma notificação é enviada ao usuário com a confirmação da compra, utilizando o método enviarNotificacao().
+
+Fluxo Alternativo: Caso o limite de ações ou o valor máximo seja excedido ou ele não possua o valor necessário de saldo, o sistema cancela a operação e retorna uma mensagem informando o motivo.
+
+Caso de Uso 3: Alteração de Configurações de Carteira (Admin)
+
+Ator Primário: Usuário (tipo "admin")
+
+Descrição: O usuário administrador faz login no sistema. O admin seleciona a carteira de um usuário comum para alterar os limites de qtdMaxAcoes e qtdMaxValor. O método adicionarAcao() verifica automaticamente os novos limites definidos durante a execução de operações futuras. Uma notificação é enviada ao usuário afetado informando sobre a alteração.
+
+Fluxo Alternativo: Caso um usuário comum tente alterar esses atributos, o sistema bloqueia a ação e exibe uma mensagem de acesso negado.
+
+Caso de Uso 4: Geração de Relatório de Investimentos
+
+Ator Primário: Usuário (tipo "comum")
+
+Descrição: O usuário acessa a opção de relatórios na interface do sistema. O método gerarRelatorio() calcula o total investido pelo usuário com base nas transações registradas: Soma o valor das ações adquiridas e subtrai o valor das ações vendidas. O relatório gerado é armazenado com um registro de data na classe Relatório. O usuário pode visualizar os relatórios anteriores utilizando o método visualizarRelatorio().
+
+Fluxo Alternativo: Se o usuário ainda não tiver transações, o sistema exibe uma mensagem indicando que não há dados suficientes para gerar o relatório.

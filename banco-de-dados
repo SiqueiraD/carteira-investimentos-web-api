@@ -1,0 +1,57 @@
+Descrição do Banco de Dados
+
+Tabela: Usuário
+Armazena informações dos usuários do sistema.
+
+id (int): Identificador único do usuário.
+nome (string): Nome do usuário.
+email (string): Endereço de e-mail do usuário.
+senha (string): Senha do usuário.
+tipoUsuario (string): Tipo de usuário (por exemplo, administrador, cliente).
+
+Tabela: Transação
+
+Registra todas as transações realizadas pelos usuários.
+
+id (int): Identificador único da transação.
+usuarioId (int): Identificador do usuário que realizou a transação.
+acaoId (int): Identificador da ação envolvida na transação.
+tipo (string): Tipo de transação (por exemplo, compra, venda).
+qtd (int): Quantidade de ações transacionadas.
+data (Date): Data da transação.
+
+Tabela: Carteira
+Mantém informações sobre as carteiras dos usuários, incluindo suas ações e saldo.
+
+id (int): Identificador único da carteira.
+usuarioId (int): Identificador do usuário proprietário da carteira.
+acaoId (int): Identificador da ação na carteira.
+qtd (int): Quantidade de ações na carteira.
+qtdMaxAcoes (int): Quantidade máxima de ações permitida na carteira.
+atdMaxValor (double): Valor máximo permitido na carteira.
+saldo (double): Saldo disponível na carteira.
+
+Tabela: Ação
+
+Contém informações sobre as ações disponíveis no sistema.
+
+id (int): Identificador único da ação.
+nome (string): Nome da ação.
+preco (double): Preço atual da ação.
+qtd (int): Quantidade de ações disponíveis.
+Tabela: Notificações
+Armazena notificações enviadas aos usuários.
+
+id (int): Identificador único da notificação.
+usuarioId (int): Identificador do usuário que recebeu a notificação.
+mensagem (string): Conteúdo da notificação.
+data (Date): Data em que a notificação foi enviada.
+
+Tabela: Notificações
+
+Armazena notificações enviadas aos usuários.
+
+id (int): Identificador único da notificação.
+usuarioId (int): Identificador do usuário que recebeu a notificação.
+mensagem (string): Conteúdo da notificação.
+data (Date): Data em que a notificação foi enviada.

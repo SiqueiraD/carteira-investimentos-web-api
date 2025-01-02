@@ -1,0 +1,179 @@
+Endpoints da API e esquemas de respostas
+
+Endpoints para Registro e Login de Usuário
+
+Registrar Usuário
+
+Descrição: Cria um novo usuário com o tipo "comum".
+Método: POST
+Rota: /api/usuarios/registrar
+
+Requisição:
+
+{
+  "nome": "string",
+  "email": "string",
+  "senha": "string"
+}
+
+Resposta (Sucesso): 201 Created
+
+
+{
+  "mensagem": "Usuário registrado com sucesso!",
+  "usuarioId": 1
+}
+
+Resposta (Erro - Email já cadastrado): 409 Conflict:
+
+{
+  "erro": "Email já registrado. Utilize outro email ou faça login."
+}
+
+
+Login do Usuário
+
+Descrição: Autentica o usuário e retorna um token JWT.
+Método: POST
+Rota: /api/usuarios/login
+Requisição:
+
+{
+  "email": "string",
+  "senha": "string"
+}
+
+
+Resposta (Sucesso): 200 OK
+
+{
+  "mensagem": "Login realizado com sucesso.",
+  "token": "string",
+  "tipoUsuario": "comum"
+}
+
+
+Resposta (Erro): 401 Unauthorized (Credenciais inválidas)
+
+{
+  "erro": "Email ou senha incorretos."
+}
+
+Endpoints para Compra de Ações
+
+Listar Ações Disponíveis
+
+Descrição: Retorna a lista de ações disponíveis para compra.
+Método: GET
+Rota: /api/acoes
+Cabeçalho: Authorization: Bearer {admin_token}
+
+Resposta (Sucesso): 200 OK
+
+[
+  {
+    "id": 1,
+    "nome": "string",
+    "preco": 100.50,
+    "quantidadeDisponivel": 500
+  }
+]
+
+
+Comprar Ação
+
+Descrição: Permite ao usuário comprar uma ação se os limites forem respeitados.
+Método: POST
+Rota: /api/carteira/comprar
+Cabeçalho: Authorization: Bearer {admin_token}
+
+Requisição:
+
+{
+  "acaoId": 1,
+  "quantidade": 10
+}
+
+Resposta (Sucesso): 200 OK
+
+{
+  "mensagem": "Compra realizada com sucesso!",
+  "transacaoId": 123,
+  "notificacao": "Compra confirmada para 10 ações de string"
+}
+
+
+Resposta (Erro): 400 Bad Request (Quantidade indisponível ou limites excedidos)
+
+{
+  "erro": "Quantidade indisponível ou limites de carteira excedidos."
+}
+
+
+Endpoints para Alteração de Configurações de Carteira (Admin)
+
+Alterar Limites da Carteira
+
+Descrição: Permite que o administrador altere os limites de qtdMaxAcoes e qtdMaxValor de um usuário.
+Método: PATCH
+Rota: /api/carteiras/{usuarioId}/limites
+Cabeçalho: Authorization: Bearer {admin_token}
+
+Requisição:
+
+{
+  "qtdMaxAcoes": 100,
+  "qtdMaxValor": 100000.0
+}
+
+
+Resposta (Sucesso): 200 OK
+
+{
+  "mensagem": "Limites atualizados com sucesso.",
+  "usuarioId": 1
+}
+
+
+Resposta (Erro - Permissão Negada): 403 Forbidden
+
+
+
+
+Endpoints para Geração de Relatório
+
+
+Gerar Relatório de Investimentos
+
+Descrição: Gera e armazena um relatório do total investido pelo usuário.
+Método: POST
+Rota: /api/relatorios/gerar
+Cabeçalho: Authorization: Bearer {token}
+
+Resposta (Sucesso): 201 Created
+
+{
+  "mensagem": "Relatório gerado com sucesso.",
+  "relatorioId": 101,
+  "totalInvestido": 5000.0
+}
+
+
+Visualizar Relatórios
+
+Descrição: Retorna uma lista de relatórios gerados pelo usuário.
+Método: GET
+Rota: /api/relatorios
+Cabeçalho: Authorization: Bearer {token}
+Resposta (Sucesso): 200 OK
+
+[
+  {
+    "relatorioId": 101,
+    "data": "2024-12-01",
+    "totalInvestido": 5000.0
+  }
+]
+
+
+
