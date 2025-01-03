@@ -1,21 +1,12 @@
 #!/bin/bash
 
-# Navegar para o diretório do aplicativo
-cd /home/site/wwwroot
-
-# Configurar variáveis de ambiente
-export PYTHONPATH=/home/site/wwwroot
-export PORT=8000
-
-# Criar e ativar ambiente virtual
+# Create and activate virtual environment
 python -m venv antenv
 source antenv/bin/activate
 
-# Atualizar pip
-python -m pip install --upgrade pip
-
-# Instalar dependências
+# Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
 
-# Iniciar a aplicação com Gunicorn
-exec gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --worker-class uvicorn.workers.UvicornWorker
+# Start the application
+gunicorn app.main:app --bind=0.0.0.0:8000 --worker-class uvicorn.workers.UvicornWorker --timeout 600
