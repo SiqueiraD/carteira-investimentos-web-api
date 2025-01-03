@@ -116,6 +116,21 @@ async def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
         qtd=acao["qtd"]
     )
 
+@app.post("/api/acoes/cadastrar", response_model=models.Acao)
+async def cadastrar_acoes(acao: schemas.AcaoCreate, _: dict = Depends(get_current_user)):
+    # Criar ação
+    acao_dict = acao.model_dump()
+    resultado = await acoes.insert_one(acao_dict)
+    acao_criada = await acoes.find_one({"_id": resultado.inserted_id})
+    if not acao_criada:
+        raise HTTPException(status_code=500, detail="Erro ao cadastrar a a o")
+    return models.Acao(
+        _id=str(acao_criada["_id"]),
+        nome=acao_criada["nome"],
+        preco=acao_criada["preco"],
+        qtd=acao_criada["qtd"]
+    )
+
 # Rotas de carteira
 @app.get("/api/carteira", response_model=models.Carteira)
 async def obter_carteira(usuario: dict = Depends(get_current_user)):
