@@ -6,6 +6,7 @@ from .database import usuarios, acoes, carteiras, transacoes, notificacoes, rela
 from .config import get_settings
 from typing import List
 from bson import ObjectId
+from contextlib import asynccontextmanager
 
 # Configuração do FastAPI
 app = FastAPI(
@@ -13,6 +14,18 @@ app = FastAPI(
     description="API para gerenciamento de investimentos em ações",
     version="1.0.0"
 )
+
+# Lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await init_db()
+    yield
+    # Shutdown
+    pass
+
+# Atualizar a configuração do FastAPI
+app.lifespan_context = lifespan
 
 # Configuração do CORS
 app.add_middleware(
@@ -26,10 +39,10 @@ app.add_middleware(
 # Configuração de segurança
 security = HTTPBearer()
 
-# Evento de inicialização
-@app.on_event("startup")
-async def startup_event():
-    await init_db()
+# Root route
+@app.get("/")
+async def read_root():
+    return {"message": "Bem-vindo à API de Investimentos"}
 
 # Rotas de autenticação
 @app.post("/api/usuarios/registrar", response_model=schemas.Token)
