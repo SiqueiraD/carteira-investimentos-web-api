@@ -123,7 +123,7 @@ async def cadastrar_acoes(acao: schemas.AcaoCreate, _: dict = Depends(get_curren
     resultado = await acoes.insert_one(acao_dict)
     acao_criada = await acoes.find_one({"_id": resultado.inserted_id})
     if not acao_criada:
-        raise HTTPException(status_code=500, detail="Erro ao cadastrar a a o")
+        raise HTTPException(status_code=500, detail="Erro ao cadastrar ação")
     return models.Acao(
         _id=str(acao_criada["_id"]),
         nome=acao_criada["nome"],
