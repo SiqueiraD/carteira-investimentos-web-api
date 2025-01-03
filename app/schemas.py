@@ -21,6 +21,11 @@ class CompraAcao(BaseModel):
     acao_id: str
     quantidade: int
 
+class AcaoCreate(BaseModel):
+    nome: str
+    preco: float
+    qtd: int
+
 class CarteiraLimites(BaseModel):
     qtd_max_acoes: Optional[int] = None
     qtd_max_valor: Optional[float] = None

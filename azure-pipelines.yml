@@ -43,8 +43,7 @@ stages:
       displayName: 'Install dependencies'
     
     - script: |
-        pip install pytest
-        pip install pytest-cov
+        pip install pytest pytest-cov httpx
         pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml
       displayName: 'Run tests'
       continueOnError: true
