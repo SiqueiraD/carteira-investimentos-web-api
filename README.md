@@ -1,70 +1,130 @@
-# Investment API
+# API de Investimentos
 
-API de gerenciamento de investimentos com suporte para execução local e na nuvem Azure.
+API para gerenciamento de investimentos em ações, desenvolvida com FastAPI e MongoDB.
 
 ## Requisitos
 
-- Python 3.8+
-- MongoDB (para desenvolvimento local)
-- Azure CLI (para deploy na nuvem)
-- Terraform (para infraestrutura na nuvem)
+- Python 3.11 ou superior
+- pip (gerenciador de pacotes Python)
+- MongoDB
+- Git
 
-## Configuração do Ambiente
+## Configuração do Ambiente Local
 
-### 1. Ambiente Local
-
-1. Instale o MongoDB Community Edition:
-   - Windows: [MongoDB Windows Installation Guide](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-windows/)
-   - Inicie o serviço MongoDB
-
-2. Configure o ambiente Python:
+1. **Clone o repositório**
    ```bash
+   git clone [URL_DO_REPOSITORIO]
+   cd investimentos-web-dev
+   ```
+
+2. **Crie e ative um ambiente virtual**
+   ```bash
+   # Windows
    python -m venv venv
    .\venv\Scripts\activate
+
+   # Linux/MacOS
+   python -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Instale as dependências**
+   ```bash
    pip install -r requirements.txt
    ```
 
-3. Configure as variáveis de ambiente:
-   ```bash
-   copy .env.example .env
-   ```
-   - Edite o arquivo `.env` com suas configurações
+4. **Configure as variáveis de ambiente**
+   - Crie um arquivo `.env` na raiz do projeto
+   - Adicione as seguintes variáveis:
+     ```env
+     MONGODB_URL=sua_url_do_mongodb
+     SECRET_KEY=sua_chave_secreta
+     ```
 
-4. Execute a aplicação:
-   ```bash
-   python local.py
-   ```
-   A API estará disponível em `http://localhost:8000`
-   Documentação Swagger: `http://localhost:8000/docs`
+## Executando a Aplicação
 
-### 2. Deploy na Azure
-
-1. Login na Azure:
+1. **Inicie o servidor de desenvolvimento**
    ```bash
-   az login
+   uvicorn app.main:app --reload
    ```
 
-2. Configure as credenciais do Terraform:
+2. **Acesse a documentação da API**
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+## Executando os Testes
+
+```bash
+# Executar todos os testes
+pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml
+
+# Executar testes específicos
+pytest tests/test_main.py -v
+```
+
+## Deploy
+
+O projeto está configurado para deploy automático no Azure App Service usando Azure Pipelines.
+
+1. **Requisitos para deploy**
+   - Conta no Azure
+   - Azure App Service configurado
+   - MongoDB Atlas ou Azure Cosmos DB
+
+2. **Configuração do Azure Pipeline**
+   - O arquivo `azure-pipelines.yml` contém toda a configuração necessária
+   - Certifique-se de configurar as variáveis de ambiente no Azure App Service
+
+## Como Contribuir
+
+1. **Fork o projeto**
+   - Clique no botão "Fork" no canto superior direito da página
+
+2. **Clone seu fork**
    ```bash
-   az account set --subscription "YOUR_SUBSCRIPTION_ID"
+   git clone [URL_DO_SEU_FORK]
    ```
 
-3. Inicialize e aplique a infraestrutura Terraform:
+3. **Crie uma branch para sua feature**
    ```bash
-   cd terraform
-   terraform init
-   terraform plan
-   terraform apply
+   git checkout -b feature/nome-da-feature
    ```
 
-4. Configure as variáveis de ambiente da produção:
-   - Copie as variáveis de saída do Terraform
-   - Atualize o arquivo `.env` com os valores de produção
+4. **Faça suas alterações**
+   - Siga o estilo de código do projeto
+   - Adicione testes para novas funcionalidades
+   - Mantenha a documentação atualizada
 
-5. Deploy da aplicação:
+5. **Commit suas alterações**
    ```bash
-   az functionapp deployment source config-zip -g YOUR_RESOURCE_GROUP -n YOUR_FUNCTION_APP_NAME --src dist/function.zip
+   git commit -m "feat: adiciona nova funcionalidade"
    ```
+   > Siga o padrão de commits convencionais:
+   > - feat: nova funcionalidade
+   > - fix: correção de bug
+   > - docs: alteração na documentação
+   > - test: adição/modificação de testes
+   > - refactor: refatoração de código
+
+6. **Push para seu fork**
+   ```bash
+   git push origin feature/nome-da-feature
+   ```
+
+7. **Crie um Pull Request**
+   - Abra um PR do seu fork para o repositório principal
+   - Descreva suas alterações detalhadamente
+   - Referencie issues relacionadas
+
+## Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## Suporte
+
+- Abra uma issue para reportar bugs ou sugerir melhorias
+- Consulte a documentação da API para dúvidas sobre endpoints
+- Entre em contato com a equipe de desenvolvimento para questões mais específicas
 
 ## Estrutura do Projeto
 
