@@ -97,4 +97,4 @@ stages:
               azureSubscription: '$(azureSubscription)'
               appName: '$(webAppName)'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
-              startUpCommand: 'chmod +x startup.sh && ./startup.sh'
+              startUpCommand: 'pip install -r requirements.txt && gunicorn --config gunicorn.conf.py app.main:app'
