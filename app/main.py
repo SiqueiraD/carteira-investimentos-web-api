@@ -117,8 +117,11 @@ async def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
     )
 
 @app.post("/api/acoes/cadastrar", response_model=models.Acao)
-async def cadastrar_acoes(acao: schemas.AcaoCreate, _: dict = Depends(get_current_user)):
+async def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_current_user)):
     # Criar ação
+    user_tipo = user["tipo_usuario"]
+    if(user_tipo != "admin" and user_tipo != "bot"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     acao_dict = acao.model_dump()
     resultado = await acoes.insert_one(acao_dict)
     acao_criada = await acoes.find_one({"_id": resultado.inserted_id})
