@@ -26,6 +26,11 @@ class AcaoCreate(BaseModel):
     preco: float
     qtd: int
 
+class AcaoUpdate(BaseModel):
+    nome: Optional[str] = None
+    preco: Optional[float] = None
+    qtd: Optional[int] = None
+
 class CarteiraLimites(BaseModel):
     qtd_max_acoes: Optional[int] = None
     qtd_max_valor: Optional[float] = None

@@ -28,7 +28,7 @@ class Usuario(MongoBaseModel):
     nome: str
     email: EmailStr
     senha: str
-    tipo_usuario: str = "comum"
+    tipo_usuario: str = "comum" or "admin" or "bot"
 
 class Acao(MongoBaseModel):
     nome: str

@@ -77,7 +77,7 @@ async def login(usuario: schemas.UsuarioLogin):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "tipo_usuario": user.get("tipo_usuario", "comum")
+        "tipo_usuario": user["tipo_usuario"]
     }
 
 # Rotas protegidas
