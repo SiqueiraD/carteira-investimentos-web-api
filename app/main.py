@@ -134,6 +134,27 @@ async def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_cur
         qtd=acao_criada["qtd"]
     )
 
+@app.patch("/api/acoes/{acao_id}", response_model=models.Acao)
+async def atualizar_acoes(acao_id: str, acao: schemas.AcaoUpdate, user: dict = Depends(get_current_user)):
+    # Alterar ação
+    user_tipo = user["tipo_usuario"]
+    if(user_tipo != "admin" and user_tipo != "bot"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    acao_dict = acao.model_dump()
+    resultado = await acoes.update_one({"_id": ObjectId(acao_id)}, {"$set": acao_dict})
+    if resultado.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Ação não encontrada")
+    acao_atualizada = await acoes.find_one({"_id": ObjectId(acao_id)})
+    if not acao_atualizada:
+        raise HTTPException(status_code=500, detail="Erro ao atualizar ação")
+    return models.Acao(
+        _id=str(acao_atualizada["_id"]),
+        nome=acao_atualizada["nome"],
+        preco=acao_atualizada["preco"],
+        qtd=acao_atualizada["qtd"]
+    )
+
+
 # Rotas de carteira
 @app.get("/api/carteira", response_model=models.Carteira)
 async def obter_carteira(usuario: dict = Depends(get_current_user)):
