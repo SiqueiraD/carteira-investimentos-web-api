@@ -50,6 +50,7 @@ carteiras = database.carteiras
 transacoes = database.transacoes
 notificacoes = database.notificacoes
 relatorios = database.relatorios
+precos_referencia = database.precos_referencia
 
 # Função para inicializar o banco de dados
 async def init_db():
@@ -61,6 +62,7 @@ async def init_db():
         # Criar índices necessários
         await usuarios.create_index("email", unique=True)
         await acoes.create_index("nome", unique=True)
+        await precos_referencia.create_index([("acao_id", 1)], unique=True)
         logger.info("Índices criados com sucesso!")
         
         # Em ambiente local, inserir dados de exemplo

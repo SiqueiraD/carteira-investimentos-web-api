@@ -34,6 +34,7 @@ class Acao(MongoBaseModel):
     nome: str
     preco: float
     qtd: int
+    risco: int = Field(ge=1, le=5) 
 
 class CarteiraAcao(MongoBaseModel):
     acao_id: PyObjectId
@@ -45,6 +46,7 @@ class Carteira(MongoBaseModel):
     qtd_max_acoes: int = 100
     qtd_max_valor: float = 100000.0
     saldo: float = 0.0
+    nivel_risco: int = Field(default=1, ge=1, le=5) 
 
 class Transacao(MongoBaseModel):
     usuario_id: PyObjectId
@@ -62,3 +64,9 @@ class Relatorio(MongoBaseModel):
     usuario_id: PyObjectId
     data: datetime = Field(default_factory=datetime.utcnow)
     total_investido: float
+
+class PrecoReferencia(MongoBaseModel):
+    acao_id: str
+    preco_referencia: float
+    data_atualizacao: datetime
+    atualizado_por: str  # email do usuário que atualizou
