@@ -100,7 +100,8 @@ async def listar_acoes(_: dict = Depends(get_current_user)):
             _id=str(acao["_id"]),
             nome=acao["nome"],
             preco=acao["preco"],
-            qtd=acao["qtd"]
+            qtd=acao["qtd"],
+            risco=acao.get("risco", 1)  # Valor padrão 1 se não existir
         )
         for acao in acoes_list
     ]

@@ -25,8 +25,12 @@ class Settings(BaseSettings):
     # Azure Key Vault (apenas para produção)
     KEY_VAULT_URL: Optional[str] = None
     
+    # Configurações de Log
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    
     class Config:
         env_file = ".env"
+        case_sensitive = True
 
 @lru_cache()
 def get_settings():

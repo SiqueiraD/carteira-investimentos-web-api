@@ -34,7 +34,7 @@ class Acao(MongoBaseModel):
     nome: str
     preco: float
     qtd: int
-    risco: int = Field(ge=1, le=5) 
+    risco: Optional[int] = Field(default=1, ge=1, le=5)
 
 class CarteiraAcao(MongoBaseModel):
     acao_id: PyObjectId
@@ -46,7 +46,7 @@ class Carteira(MongoBaseModel):
     qtd_max_acoes: int = 100
     qtd_max_valor: float = 100000.0
     saldo: float = 0.0
-    nivel_risco: int = Field(default=1, ge=1, le=5) 
+    nivel_risco: int = Field(default=1, ge=1, le=5)
 
 class Transacao(MongoBaseModel):
     usuario_id: PyObjectId
