@@ -35,16 +35,16 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def autenticar_usuario(email: str, senha: str):
+def autenticar_usuario(email: str, senha: str):
     """Autentica um usuário pelo email e senha."""
-    user = await usuarios.find_one({"email": email})
+    user = usuarios.find_one({"email": email})
     if not user:
         return None
     if not verify_password(senha, user["senha"]):
         return None
     return user
 
-async def get_current_user(token: str, credentials_exception: HTTPException):
+def get_current_user(token: str, credentials_exception: HTTPException):
     """Obtém o usuário atual a partir do token JWT."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -54,7 +54,8 @@ async def get_current_user(token: str, credentials_exception: HTTPException):
     except JWTError:
         raise credentials_exception
     
-    user = await usuarios.find_one({"email": email})
+    user = usuarios.find_one({"email": email})
     if user is None:
         raise credentials_exception
+    
     return user

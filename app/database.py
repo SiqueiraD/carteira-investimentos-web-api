@@ -1,6 +1,4 @@
-import motor.motor_asyncio
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
+import pymongo
 from .config import get_settings
 import logging
 import sys
@@ -12,25 +10,14 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Configuração do MongoDB
-if settings.ENVIRONMENT == "prod" and settings.KEY_VAULT_URL:
-    # Em produção, tenta obter a string de conexão do Key Vault
-    try:
-        credential = DefaultAzureCredential()
-        secret_client = SecretClient(vault_url=settings.KEY_VAULT_URL, credential=credential)
-        MONGODB_URL = secret_client.get_secret("mongodb-connection-string").value
-    except Exception as e:
-        logger.error(f"Erro ao obter segredo do Key Vault: {e}")
-        MONGODB_URL = settings.MONGODB_URL
-else:
-    # Em desenvolvimento local, usa a URL do MongoDB local
-    MONGODB_URL = settings.MONGODB_URL
+MONGODB_URL = settings.MONGODB_URL
 
 logger.info(f"Ambiente: {settings.ENVIRONMENT}")
 logger.info("Tentando conectar ao MongoDB...")
 
 try:
     # Cliente MongoDB com configurações simplificadas
-    client = motor.motor_asyncio.AsyncIOMotorClient(
+    client = pymongo.MongoClient(
         MONGODB_URL,
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
@@ -38,6 +25,8 @@ try:
         tlsAllowInvalidCertificates=True  # Necessário para alguns ambientes Azure
     )
     database = client[settings.DATABASE_NAME]
+    # Testar a conexão
+    client.admin.command('ping')
     logger.info("Conexão com MongoDB estabelecida com sucesso!")
 except Exception as e:
     logger.error(f"Erro ao conectar ao MongoDB: {e}")
@@ -52,29 +41,27 @@ notificacoes = database.notificacoes
 relatorios = database.relatorios
 precos_referencia = database.precos_referencia
 
-# Função para inicializar o banco de dados
-async def init_db():
+def init_db():
+    """Initialize database with required collections"""
     try:
-        # Testar a conexão
-        await client.admin.command('ping')
-        logger.info("Ping ao MongoDB realizado com sucesso!")
+        # Lista de coleções necessárias
+        collections = ["usuarios", "acoes", "carteiras", "transacoes", "notificacoes", "relatorios", "precos_referencia"]
+        
+        # Criar coleções se não existirem
+        existing_collections = database.list_collection_names()
+        for collection in collections:
+            if collection not in existing_collections:
+                database.create_collection(collection)
+                logger.info(f"Coleção {collection} criada com sucesso!")
         
         # Criar índices necessários
-        await usuarios.create_index("email", unique=True)
-        await acoes.create_index("nome", unique=True)
-        await precos_referencia.create_index([("acao_id", 1)], unique=True)
-        logger.info("Índices criados com sucesso!")
+        usuarios.create_index("email", unique=True)
+        acoes.create_index("nome", unique=True)
         
-        # Em ambiente local, inserir dados de exemplo
-        if settings.ENVIRONMENT == "local":
-            if await acoes.count_documents({}) == 0:
-                await acoes.insert_many([
-                    {"nome": "AAPL", "preco": 150.0, "qtd": 1000},
-                    {"nome": "GOOGL", "preco": 2800.0, "qtd": 500},
-                    {"nome": "MSFT", "preco": 300.0, "qtd": 800},
-                    {"nome": "AMZN", "preco": 3300.0, "qtd": 300},
-                ])
-                logger.info("Dados de exemplo inseridos com sucesso!")
+        logger.info("Inicialização do banco de dados concluída!")
     except Exception as e:
-        logger.error(f"Erro ao inicializar banco de dados: {e}")
+        logger.error(f"Erro ao inicializar o banco de dados: {e}")
         # Não levanta a exceção para permitir que a aplicação continue mesmo se houver erro na inicialização
+
+# Inicializar o banco de dados
+init_db()

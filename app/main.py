@@ -6,7 +6,6 @@ from app.database import usuarios, acoes, carteiras, transacoes, notificacoes, r
 from app.config import get_settings
 from typing import List
 from bson import ObjectId
-from contextlib import asynccontextmanager
 from datetime import datetime
 
 # Configuração do FastAPI
@@ -16,17 +15,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Lifespan context manager
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await init_db()
-    yield
-    # Shutdown
-    pass
-
-# Atualizar a configuração do FastAPI
-app.lifespan_context = lifespan
+# Inicializar o banco de dados durante a inicialização
+init_db()
 
 # Configuração do CORS
 app.add_middleware(
@@ -42,29 +32,29 @@ security = HTTPBearer()
 
 # Root route
 @app.get("/")
-async def read_root():
+def read_root():
     return {"message": "Bem-vindo à API de Investimentos"}
 
 # Middleware de autenticação
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     credentials_exception = HTTPException(
         status_code=401,
         detail="Credenciais inválidas",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    return await auth.get_current_user(credentials.credentials, credentials_exception)
+    return auth.get_current_user(credentials.credentials, credentials_exception)
 
 # Rotas de autenticação
 @app.post("/api/usuarios/registrar", response_model=schemas.Token, tags=["Autenticação"])
-async def registrar_usuario(usuario: schemas.UsuarioCreate):
+def registrar_usuario(usuario: schemas.UsuarioCreate):
     # Verificar se o email já existe
-    if await usuarios.find_one({"email": usuario.email}):
+    if usuarios.find_one({"email": usuario.email}):
         raise HTTPException(status_code=400, detail="Email já registrado")
     
     # Criar usuário
     usuario_dict = usuario.model_dump()
     usuario_dict["senha"] = auth.get_password_hash(usuario_dict["senha"])
-    resultado = await usuarios.insert_one(usuario_dict)
+    resultado = usuarios.insert_one(usuario_dict)
     
     # Gerar token
     token = auth.create_access_token(data={"sub": usuario.email})
@@ -75,15 +65,15 @@ async def registrar_usuario(usuario: schemas.UsuarioCreate):
     }
 
 @app.post("/api/usuarios/login", response_model=schemas.Token, tags=["Autenticação"])
-async def login(usuario: schemas.UsuarioLogin):
-    user = await auth.autenticar_usuario(usuario.email, usuario.senha)
+def login(usuario: schemas.UsuarioLogin):
+    user = auth.autenticar_usuario(usuario.email, usuario.senha)
     if not user:
         raise HTTPException(
             status_code=401,
             detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = auth.create_access_token(data={"sub": user["email"]})
+    token = auth.create_access_token(data={"sub": usuario.email})
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -92,9 +82,9 @@ async def login(usuario: schemas.UsuarioLogin):
 
 # Rotas de ações
 @app.get("/api/acoes", response_model=List[models.Acao], tags=["Ações"])
-async def listar_acoes(_: dict = Depends(get_current_user)):
+def listar_acoes(_: dict = Depends(get_current_user)):
     cursor = acoes.find()
-    acoes_list = await cursor.to_list(length=100)
+    acoes_list = list(cursor)
     return [
         models.Acao(
             _id=str(acao["_id"]),
@@ -107,8 +97,8 @@ async def listar_acoes(_: dict = Depends(get_current_user)):
     ]
 
 @app.get("/api/acoes/{acao_id}", response_model=models.Acao, tags=["Ações"])
-async def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
-    acao = await acoes.find_one({"_id": ObjectId(acao_id)})
+def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
+    acao = acoes.find_one({"_id": ObjectId(acao_id)})
     if not acao:
         raise HTTPException(status_code=404, detail="Ação não encontrada")
     return models.Acao(
@@ -120,15 +110,15 @@ async def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
     )
 
 @app.post("/api/acoes/cadastrar", response_model=models.Acao, tags=["Ações"])
-async def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_current_user)):
+def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_current_user)):
     # Verificar permissões
     if user.get("tipo_usuario") not in ["admin", "bot"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Criar ação
     acao_dict = acao.model_dump()
-    resultado = await acoes.insert_one(acao_dict)
-    acao_criada = await acoes.find_one({"_id": resultado.inserted_id})
+    resultado = acoes.insert_one(acao_dict)
+    acao_criada = acoes.find_one({"_id": resultado.inserted_id})
     if not acao_criada:
         raise HTTPException(status_code=500, detail="Erro ao cadastrar ação")
     return models.Acao(
@@ -140,18 +130,18 @@ async def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_cur
     )
 
 @app.patch("/api/acoes/{acao_id}", response_model=models.Acao, tags=["Ações"])
-async def atualizar_acoes(acao_id: str, acao: schemas.AcaoUpdate, user: dict = Depends(get_current_user)):
+def atualizar_acoes(acao_id: str, acao: schemas.AcaoUpdate, user: dict = Depends(get_current_user)):
     # Verificar permissões
     if user.get("tipo_usuario") not in ["admin", "bot"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Atualizar ação
     acao_dict = acao.model_dump(exclude_unset=True)
-    resultado = await acoes.update_one({"_id": ObjectId(acao_id)}, {"$set": acao_dict})
+    resultado = acoes.update_one({"_id": ObjectId(acao_id)}, {"$set": acao_dict})
     if resultado.matched_count == 0:
         raise HTTPException(status_code=404, detail="Ação não encontrada")
     
-    acao_atualizada = await acoes.find_one({"_id": ObjectId(acao_id)})
+    acao_atualizada = acoes.find_one({"_id": ObjectId(acao_id)})
     if not acao_atualizada:
         raise HTTPException(status_code=500, detail="Erro ao atualizar ação")
     return models.Acao(
@@ -164,8 +154,8 @@ async def atualizar_acoes(acao_id: str, acao: schemas.AcaoUpdate, user: dict = D
 
 # Rotas de carteira
 @app.get("/api/carteira", response_model=models.Carteira, tags=["Carteira"])
-async def obter_carteira(usuario: dict = Depends(get_current_user)):
-    carteira = await carteiras.find_one({"usuario_id": ObjectId(usuario["_id"])})
+def obter_carteira(usuario: dict = Depends(get_current_user)):
+    carteira = carteiras.find_one({"usuario_id": ObjectId(usuario["_id"])})
     if not carteira:
         # Criar carteira vazia se não existir
         carteira = {
@@ -176,7 +166,7 @@ async def obter_carteira(usuario: dict = Depends(get_current_user)):
             "qtd_max_valor": 100000.0,
             "nivel_risco": 1
         }
-        resultado = await carteiras.insert_one(carteira)
+        resultado = carteiras.insert_one(carteira)
         carteira["_id"] = resultado.inserted_id
     
     return models.Carteira(
@@ -196,9 +186,9 @@ async def obter_carteira(usuario: dict = Depends(get_current_user)):
     )
 
 @app.post("/api/carteira/comprar", response_model=models.Carteira, tags=["Carteira"])
-async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current_user)):
+def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current_user)):
     # Verificar se a ação existe
-    acao = await acoes.find_one({"_id": ObjectId(compra.acao_id)})
+    acao = acoes.find_one({"_id": ObjectId(compra.acao_id)})
     if not acao:
         raise HTTPException(status_code=404, detail="Ação não encontrada")
     
@@ -207,7 +197,7 @@ async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_c
         raise HTTPException(status_code=400, detail="Quantidade indisponível")
     
     # Obter carteira do usuário
-    carteira = await carteiras.find_one({"usuario_id": ObjectId(usuario["_id"])})
+    carteira = carteiras.find_one({"usuario_id": ObjectId(usuario["_id"])})
     if not carteira:
         carteira = {
             "usuario_id": ObjectId(usuario["_id"]),
@@ -217,7 +207,7 @@ async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_c
             "qtd_max_valor": 100000.0,
             "nivel_risco": 1
         }
-        resultado = await carteiras.insert_one(carteira)
+        resultado = carteiras.insert_one(carteira)
         carteira["_id"] = resultado.inserted_id
     
     # Verificar nível de risco
@@ -251,12 +241,12 @@ async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_c
         })
     
     # Atualizar banco de dados
-    await carteiras.update_one(
+    carteiras.update_one(
         {"_id": carteira["_id"]},
         {"$set": carteira}
     )
     
-    await acoes.update_one(
+    acoes.update_one(
         {"_id": ObjectId(compra.acao_id)},
         {"$inc": {"qtd": -compra.quantidade}}
     )
@@ -269,10 +259,10 @@ async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_c
         "qtd": compra.quantidade,
         "data": datetime.utcnow()
     }
-    await transacoes.insert_one(transacao)
+    transacoes.insert_one(transacao)
     
     # Retornar carteira atualizada
-    carteira_atualizada = await carteiras.find_one({"_id": carteira["_id"]})
+    carteira_atualizada = carteiras.find_one({"_id": carteira["_id"]})
     return models.Carteira(
         _id=str(carteira_atualizada["_id"]),
         usuario_id=str(carteira_atualizada["usuario_id"]),
@@ -290,7 +280,7 @@ async def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_c
     )
 
 @app.patch("/api/carteiras/{usuario_id}/limites", response_model=models.Carteira, tags=["Carteira"])
-async def atualizar_limites_carteira(
+def atualizar_limites_carteira(
     usuario_id: str,
     limites: schemas.CarteiraLimites,
     current_user: dict = Depends(get_current_user)
@@ -312,7 +302,7 @@ async def atualizar_limites_carteira(
         raise HTTPException(status_code=400, detail="Nenhum limite para atualizar foi fornecido")
     
     # Atualizar limites
-    resultado = await carteiras.update_one(
+    resultado = carteiras.update_one(
         {"usuario_id": ObjectId(usuario_id)},
         {"$set": updates}
     )
@@ -321,7 +311,7 @@ async def atualizar_limites_carteira(
         raise HTTPException(status_code=404, detail="Carteira não encontrada")
     
     # Retornar carteira atualizada
-    carteira_atualizada = await carteiras.find_one({"usuario_id": ObjectId(usuario_id)})
+    carteira_atualizada = carteiras.find_one({"usuario_id": ObjectId(usuario_id)})
     return models.Carteira(
         _id=str(carteira_atualizada["_id"]),
         usuario_id=str(carteira_atualizada["usuario_id"]),
@@ -339,19 +329,19 @@ async def atualizar_limites_carteira(
     )
 
 @app.get("/api/carteiras", response_model=List[schemas.CarteiraComUsuario], tags=["Carteira"])
-async def listar_carteiras(current_user: dict = Depends(get_current_user)):
+def listar_carteiras(current_user: dict = Depends(get_current_user)):
     # Verificar permissões
     if current_user.get("tipo_usuario") not in ["admin", "bot"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar todas as carteiras
     cursor = carteiras.find()
-    carteiras_list = await cursor.to_list(length=100)
+    carteiras_list = list(cursor)
     
     # Para cada carteira, buscar informações do usuário
     resultado = []
     for carteira in carteiras_list:
-        usuario = await usuarios.find_one({"_id": carteira["usuario_id"]})
+        usuario = usuarios.find_one({"_id": carteira["usuario_id"]})
         if usuario:
             resultado.append({
                 "_id": str(carteira["_id"]),
@@ -374,9 +364,9 @@ async def listar_carteiras(current_user: dict = Depends(get_current_user)):
     return resultado
 
 @app.get("/api/carteiras/{usuario_id}", response_model=models.Carteira, tags=["Carteira"])
-async def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depends(get_current_user)):
+def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depends(get_current_user)):
     # Verificar se o usuário existe
-    usuario = await usuarios.find_one({"_id": ObjectId(usuario_id)})
+    usuario = usuarios.find_one({"_id": ObjectId(usuario_id)})
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
@@ -385,7 +375,7 @@ async def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depe
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar carteira
-    carteira = await carteiras.find_one({"usuario_id": ObjectId(usuario_id)})
+    carteira = carteiras.find_one({"usuario_id": ObjectId(usuario_id)})
     if not carteira:
         # Criar carteira vazia se não existir
         carteira = {
@@ -396,7 +386,7 @@ async def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depe
             "qtd_max_valor": 100000.0,
             "nivel_risco": 1
         }
-        resultado = await carteiras.insert_one(carteira)
+        resultado = carteiras.insert_one(carteira)
         carteira["_id"] = resultado.inserted_id
     
     return models.Carteira(
@@ -417,7 +407,7 @@ async def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depe
 
 # Rotas de preços de referência
 @app.post("/api/precos/cadastrar", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-async def cadastrar_preco_referencia(
+def cadastrar_preco_referencia(
     preco: schemas.PrecoReferenciaCreate,
     current_user: dict = Depends(get_current_user)
 ):
@@ -426,7 +416,7 @@ async def cadastrar_preco_referencia(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Verificar se a ação existe
-    acao = await acoes.find_one({"_id": ObjectId(preco.acao_id)})
+    acao = acoes.find_one({"_id": ObjectId(preco.acao_id)})
     if not acao:
         raise HTTPException(status_code=404, detail="Ação não encontrada")
     
@@ -439,8 +429,8 @@ async def cadastrar_preco_referencia(
     }
     
     try:
-        resultado = await precos_referencia.insert_one(preco_dict)
-        preco_criado = await precos_referencia.find_one({"_id": resultado.inserted_id})
+        resultado = precos_referencia.insert_one(preco_dict)
+        preco_criado = precos_referencia.find_one({"_id": resultado.inserted_id})
         return {
             "id": str(preco_criado["_id"]),
             "acao_id": preco_criado["acao_id"],
@@ -452,7 +442,7 @@ async def cadastrar_preco_referencia(
         raise HTTPException(status_code=400, detail="Já existe um preço de referência para esta ação")
 
 @app.put("/api/precos/{acao_id}", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-async def atualizar_preco_referencia(
+def atualizar_preco_referencia(
     acao_id: str,
     preco: schemas.PrecoReferenciaUpdate,
     current_user: dict = Depends(get_current_user)
@@ -462,7 +452,7 @@ async def atualizar_preco_referencia(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Atualizar preço
-    resultado = await precos_referencia.find_one_and_update(
+    resultado = precos_referencia.find_one_and_update(
         {"acao_id": acao_id},
         {
             "$set": {
@@ -486,9 +476,9 @@ async def atualizar_preco_referencia(
     }
 
 @app.get("/api/precos", response_model=List[schemas.PrecoReferenciaResponse], tags=["Preços de Referência"])
-async def listar_precos_referencia(_: dict = Depends(get_current_user)):
+def listar_precos_referencia(_: dict = Depends(get_current_user)):
     cursor = precos_referencia.find()
-    precos_list = await cursor.to_list(length=100)
+    precos_list = list(cursor)
     return [
         {
             "id": str(preco["_id"]),
@@ -501,8 +491,8 @@ async def listar_precos_referencia(_: dict = Depends(get_current_user)):
     ]
 
 @app.get("/api/precos/{acao_id}", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-async def obter_preco_referencia(acao_id: str, _: dict = Depends(get_current_user)):
-    preco = await precos_referencia.find_one({"acao_id": acao_id})
+def obter_preco_referencia(acao_id: str, _: dict = Depends(get_current_user)):
+    preco = precos_referencia.find_one({"acao_id": acao_id})
     if not preco:
         raise HTTPException(status_code=404, detail="Preço de referência não encontrado")
     

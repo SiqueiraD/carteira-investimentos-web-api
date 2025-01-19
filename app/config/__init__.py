@@ -24,6 +24,6 @@ def get_settings() -> Settings:
     """Get settings based on environment"""
     env = os.getenv("ENVIRONMENT", "local")
     if env == "prod":
-        from .config.prod import Settings as ProdSettings
+        from .prod import Settings as ProdSettings
         return ProdSettings()
     return Settings()

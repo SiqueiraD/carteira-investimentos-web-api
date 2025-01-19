@@ -20,7 +20,7 @@ az webapp config appsettings set \
     --settings \
     ENVIRONMENT="prod" \
     MONGODB_URL="mongodb://$COSMOS_ACCOUNT:$COSMOS_KEY@$COSMOS_ACCOUNT.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000" \
-    JWT_SECRET="$(openssl rand -hex 32)" \
+    JWT_SECRET="fixed-secret2" \
     LOG_LEVEL="INFO" \
     WEBSITES_PORT="8000" \
     SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
@@ -34,34 +34,37 @@ az webapp config set \
     --startup-file "startup.sh" \
     --linux-fx-version "PYTHON|3.10"
 
-# Inicializar repositório git local se não existir
-if [ ! -d .git ]; then
-    git init
-    git add .
-    git commit -m "Initial commit"
-fi
+# Criar arquivo __init__.py no diretório config se não existir
+mkdir -p app/config
+touch app/config/__init__.py
 
-# Obter as credenciais de publicação
-CREDS=$(az webapp deployment list-publishing-credentials \
-    --name $APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --query "[?name=='web'].{url:url, username:username, password:password}[0]" \
-    --output json)
+# Compactar a aplicação excluindo arquivos desnecessários
+echo "Compactando arquivos para deploy..."
+zip -r deployment.zip . \
+    -x "*.git*" \
+    -x "*.env*" \
+    -x "*venv*" \
+    -x "*__pycache__*" \
+    -x "*.pytest_cache*" \
+    -x "deployment.zip" \
+    -x "*.pyc" \
+    -x "tests/*" \
+    -x "terraform/*" \
+    -x "banco-de-dados/*" \
+    -x "casos-de-uso/*" \
+    -x "descricao-api/*"
 
-GIT_URL=$(echo $CREDS | jq -r '.url')
-GIT_USERNAME=$(echo $CREDS | jq -r '.username')
-GIT_PASSWORD=$(echo $CREDS | jq -r '.password')
-
-# Configurar remote do Azure se não existir
-if ! git remote | grep -q "azure"; then
-    git remote add azure "https://$GIT_USERNAME:$GIT_PASSWORD@$APP_NAME.scm.azurewebsites.net/$APP_NAME.git"
-fi
-
-# Deploy para o Azure Web App
+# Deploy usando o novo comando az webapp deploy
 echo "Iniciando deploy para $APP_NAME..."
-git add .
-git commit -m "Deploy update $(date)"
-git push azure master --force
+az webapp deploy \
+    --resource-group $RESOURCE_GROUP \
+    --name $APP_NAME \
+    --src-path deployment.zip \
+    --type zip \
+    --async false
+
+# Limpar arquivos temporários
+rm deployment.zip
 
 echo "Deploy concluído!"
 

@@ -1,5 +1,5 @@
 from pydantic import Field, ConfigDict
-from ..config import Settings as BaseSettings
+from . import Settings as BaseSettings
 
 class Settings(BaseSettings):
     """Production settings"""
@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = Field(default="investimentos")
 
     model_config = ConfigDict(
-        env_file=".env",
+        env_file=None,  # Desabilita o arquivo .env em produção
         env_file_encoding="utf-8",
-        extra="allow"  # Permite campos extras
+        extra="allow",  # Permite campos extras
+        validate_assignment=True  # Valida os valores durante a atribuição
     )
