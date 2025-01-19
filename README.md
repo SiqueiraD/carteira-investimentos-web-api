@@ -62,18 +62,78 @@ pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-r
 pytest tests/test_main.py -v
 ```
 
-## Deploy
+## Deploy no Azure
 
-O projeto está configurado para deploy automático no Azure App Service usando Azure Pipelines.
+O projeto pode ser implantado no Azure usando os recursos criados pelo Terraform.
 
-1. **Requisitos para deploy**
-   - Conta no Azure
-   - Azure App Service configurado
-   - MongoDB Atlas ou Azure Cosmos DB
+### Pré-requisitos
 
-2. **Configuração do Azure Pipeline**
-   - O arquivo `azure-pipelines.yml` contém toda a configuração necessária
-   - Certifique-se de configurar as variáveis de ambiente no Azure App Service
+1. **Azure CLI** instalado e configurado
+2. **WSL Ubuntu** para executar os scripts de deploy
+3. **Terraform** para criar os recursos (opcional, se já não estiverem criados)
+
+### Criando os Recursos (opcional)
+
+Se os recursos ainda não existirem, você pode criá-los com o Terraform:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+### Deploy da Aplicação
+
+1. **Preparar o ambiente WSL**
+   ```bash
+   # No Windows, abra o WSL Ubuntu
+   wsl
+   
+   # Navegue até o diretório do projeto
+   cd /mnt/c/Projetos/CascadeProjects/windsurf-project
+   
+   # Torne o script de deploy executável
+   chmod +x deploy.sh
+   ```
+
+2. **Execute o script de deploy**
+   ```bash
+   ./deploy.sh
+   ```
+
+O script irá:
+- Obter a chave do Cosmos DB
+- Configurar as variáveis de ambiente no Web App
+- Criar um arquivo de deploy
+- Fazer o upload da aplicação
+- Limpar os arquivos temporários
+
+### Verificando o Deploy
+
+1. Acesse a URL da aplicação:
+   ```
+   https://webapp-investimentos-api-003.azurewebsites.net
+   ```
+
+2. Verifique os logs no portal do Azure ou use o comando:
+   ```bash
+   az webapp log tail --name webapp-investimentos-api-003 --resource-group rg-investimentos-api-003
+   ```
+
+### Configuração de Ambiente
+
+A aplicação suporta dois ambientes:
+
+1. **Local**
+   - Usa MongoDB local
+   - Configurado através do arquivo `.env`
+   - Ideal para desenvolvimento
+
+2. **Produção (Azure)**
+   - Usa Azure Cosmos DB com API MongoDB
+   - Configurado através das variáveis de ambiente do Web App
+   - Deploy automático via script
 
 ## Como Contribuir
 

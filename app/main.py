@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from . import models, schemas, auth
-from .database import usuarios, acoes, carteiras, transacoes, notificacoes, relatorios, precos_referencia, init_db
-from .config import get_settings
+from app import models, schemas, auth
+from app.database import usuarios, acoes, carteiras, transacoes, notificacoes, relatorios, precos_referencia, init_db
+from app.config import get_settings
 from typing import List
 from bson import ObjectId
 from contextlib import asynccontextmanager

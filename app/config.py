@@ -1,37 +1,29 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
 import os
-from typing import Optional
-from dotenv import load_dotenv
-
-load_dotenv()
+from functools import lru_cache
+from pydantic import Field, ConfigDict
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # Ambiente (local ou prod)
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "local")
-    
-    # Configurações do MongoDB
-    MONGODB_URL: str = os.getenv(
-        "MONGODB_URL",
-        "mongodb://localhost:27017"  # URL padrão para MongoDB local
+    """Base settings"""
+    ENVIRONMENT: str = Field(default="local")
+    MONGODB_URL: str = Field(default="mongodb://localhost:27017")
+    JWT_SECRET: str = Field(default="your-secret-key")
+    LOG_LEVEL: str = Field(default="INFO")
+    JWT_ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    DATABASE_NAME: str = Field(default="investimentos")
+
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow"  # Permite campos extras
     )
-    DATABASE_NAME: str = "investimentos"
-    
-    # Configurações de autenticação
-    JWT_SECRET: str = os.getenv("JWT_SECRET", "your-secret-key-for-local-dev")
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # Azure Key Vault (apenas para produção)
-    KEY_VAULT_URL: Optional[str] = None
-    
-    # Configurações de Log
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 @lru_cache()
-def get_settings():
+def get_settings() -> Settings:
+    """Get settings based on environment"""
+    env = os.getenv("ENVIRONMENT", "local")
+    if env == "prod":
+        from .config.prod import Settings as ProdSettings
+        return ProdSettings()
     return Settings()
