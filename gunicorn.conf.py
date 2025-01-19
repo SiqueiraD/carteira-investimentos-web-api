@@ -28,15 +28,12 @@ capture_output = True
 proc_name = "investimentos_api"
 
 # Working directory and Python path
-chdir = os.path.dirname(os.path.abspath(__file__))
-pythonpath = os.path.dirname(os.path.abspath(__file__))
+chdir = "/home/site/wwwroot"
+pythonpath = "/home/site/wwwroot"
 
 # Reload
-reload = True
-reload_extra_files = [
-    os.path.join(chdir, "app", "main.py"),
-    os.path.join(chdir, "app", "config.py")
-]
+reload = False  # Desabilitado em produção
+reload_extra_files = []
 
 # Debug hooks
 def on_starting(server):
@@ -49,15 +46,12 @@ def on_starting(server):
 
 def post_worker_init(worker):
     print(f"Initializing worker {worker.pid}")
-    print(f"Worker directory: {os.getcwd()}")
-    print(f"Worker PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
-    print(f"Worker sys.path: {sys.path}")
     try:
-        import app.main
+        from app.main import app
         print("Successfully imported app.main")
     except Exception as e:
-        print(f"Failed to import app.main: {e}")
-        print(f"sys.path: {sys.path}")
+        print(f"Error importing app.main: {e}")
+        sys.exit(1)
 
 def worker_abort(worker):
     print(f"Worker {worker.pid} aborted")

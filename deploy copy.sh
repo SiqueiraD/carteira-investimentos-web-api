@@ -34,34 +34,25 @@ az webapp config set \
     --startup-file "startup.sh" \
     --linux-fx-version "PYTHON|3.10"
 
-# Inicializar repositório git local se não existir
-if [ ! -d .git ]; then
-    git init
-    git add .
-    git commit -m "Initial commit"
-fi
+# Compactar a aplicação excluindo arquivos desnecessários
+echo "Compactando arquivos para deploy..."
+zip -r deployment.zip . \
+    -x "*.git*" \
+    -x "*.env*" \
+    -x "*venv*" \
+    -x "*__pycache__*" \
+    -x "*.pytest_cache*" \
+    -x "deployment.zip"
 
-# Obter as credenciais de publicação
-CREDS=$(az webapp deployment list-publishing-credentials \
-    --name $APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --query "[?name=='web'].{url:url, username:username, password:password}[0]" \
-    --output json)
-
-GIT_URL=$(echo $CREDS | jq -r '.url')
-GIT_USERNAME=$(echo $CREDS | jq -r '.username')
-GIT_PASSWORD=$(echo $CREDS | jq -r '.password')
-
-# Configurar remote do Azure se não existir
-if ! git remote | grep -q "azure"; then
-    git remote add azure "https://$GIT_USERNAME:$GIT_PASSWORD@$APP_NAME.scm.azurewebsites.net/$APP_NAME.git"
-fi
-
-# Deploy para o Azure Web App
+# Deploy usando o comando az webapp deployment
 echo "Iniciando deploy para $APP_NAME..."
-git add .
-git commit -m "Deploy update $(date)"
-git push azure master --force
+az webapp deployment source config-zip \
+    --resource-group $RESOURCE_GROUP \
+    --name $APP_NAME \
+    --src deployment.zip
+
+# Limpar arquivos temporários
+rm deployment.zip
 
 echo "Deploy concluído!"
 

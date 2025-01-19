@@ -15,10 +15,7 @@ echo "sys.path: $(python -c "import sys; print(sys.path)")"
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-# Debug: Test imports
-echo "Testing imports..."
-python -c "import sys; print('Python path:', sys.path); from app.main import app; print('Successfully imported app.main')"
-
 # Starting Gunicorn server...
 echo "Starting Gunicorn server..."
-gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker
+cd /home/site/wwwroot
+gunicorn -c gunicorn.conf.py app.main:app
