@@ -97,10 +97,10 @@ class TestAPI:
         self.deposito_id = response.json()["id"]
         return response.json()
 
-    def verificar_notificacoes_admin(self):
-        print("\n5. Verificando notificações como admin...")
+    def verificar_depositos_pendentes(self):
+        print("\n5. Verificando depósitos pendentes como admin...")
         response = requests.get(
-            f"{BASE_URL}/api/notificacoes",
+            f"{BASE_URL}/api/depositos/pendentes",
             headers=self.get_headers(self.admin_token)
         )
         print(f"Status: {response.status_code}")
@@ -252,7 +252,7 @@ def main():
     tester.login_user()
     tester.solicitar_deposito()
     tester.login_admin()
-    tester.verificar_notificacoes_admin()
+    tester.verificar_depositos_pendentes()
     tester.aprovar_deposito()
     
     # Testes com usuário comum

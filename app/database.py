@@ -65,8 +65,9 @@ def init_db():
         transacoes.create_index("acao_id")
         
         # Índices para notificações
-        notificacoes.create_index([("usuario_id", 1), ("lida", 1), ("data", -1)])
-        notificacoes.create_index("tipo")
+        notificacoes.create_index("data")  # Índice simples para ordenação por data
+        notificacoes.create_index("usuario_id")  # Índice para filtrar por usuário
+        notificacoes.create_index("tipo")  # Índice para filtrar por tipo
         
         # Índices para depósitos
         depositos.create_index([("usuario_id", 1), ("status", 1), ("data_solicitacao", -1)])

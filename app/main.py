@@ -364,32 +364,56 @@ def aprovar_deposito(
         aprovado_por=deposito_atualizado.get("aprovado_por")
     )
 
-@app.get("/api/notificacoes", response_model=List[schemas.Notificacao], tags=["Notificações"])
-def listar_notificacoes(current_user: dict = Depends(get_current_user)):
-    # Construir filtro baseado no tipo de usuário
-    if current_user["tipo_usuario"] == "admin":
-        # Admins veem suas notificações pessoais e todas as notificações admin
-        filtro = {
-            "$or": [
-                {"usuario_id": str(current_user["_id"])},
-                {"usuario_id": None}  # Notificações para todos os admins
-            ]
+@app.get("/api/depositos/pendentes", response_model=list[schemas.DepositoPendente])
+def listar_depositos_pendentes(current_user: dict = Depends(get_current_user)):
+    # Verificar se o usuário é admin
+    if current_user.get("tipo_usuario") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas administradores podem visualizar depósitos pendentes"
+        )
+
+    try:
+        # Buscar depósitos pendentes sem ordenação no banco
+        depositos_temp = list(depositos.find({"status": "pendente"}))
+        
+        if not depositos_temp:
+            return []
+        
+        # Criar um conjunto de IDs de usuário únicos
+        user_ids = {dep["usuario_id"] for dep in depositos_temp}
+        
+        # Buscar informações dos usuários de uma vez
+        usuarios_info = {
+            str(u["_id"]): u["nome"] 
+            for u in usuarios.find({"_id": {"$in": list(user_ids)}})
         }
-    else:
-        # Usuários normais veem apenas suas notificações
-        filtro = {"usuario_id": str(current_user["_id"])}
-    
-    # Buscar notificações ordenadas por data
-    cursor = notificacoes.find(filtro).sort("data", -1)
-    return [{
-        "id": str(notif["_id"]),
-        "tipo": notif["tipo"],
-        "usuario_id": notif["usuario_id"],
-        "mensagem": notif["mensagem"],
-        "data": notif["data"],
-        "lida": notif.get("lida", False),
-        "dados": notif.get("dados")
-    } for notif in cursor]
+        
+        # Processar os depósitos com as informações dos usuários
+        depositos_list = []
+        for dep in depositos_temp:
+            deposito_dict = {
+                "id": str(dep["_id"]),
+                "usuario_id": str(dep["usuario_id"]),
+                "valor": dep["valor"],
+                "descricao": dep["descricao"],
+                "data_solicitacao": dep["data_solicitacao"],
+                "status": dep["status"],
+                "nome_usuario": usuarios_info.get(str(dep["usuario_id"]))
+            }
+            depositos_list.append(deposito_dict)
+        
+        # Ordenar a lista em memória por data_solicitacao (mais recentes primeiro)
+        depositos_list.sort(key=lambda x: x["data_solicitacao"], reverse=True)
+        
+        return depositos_list
+        
+    except Exception as e:
+        print(f"Erro ao listar depósitos pendentes: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro ao listar depósitos pendentes"
+        )
 
 @app.post("/api/carteira/comprar", response_model=models.Carteira, tags=["Carteira"])
 def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current_user)):

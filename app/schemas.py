@@ -99,11 +99,25 @@ class AprovarDeposito(BaseModel):
 class Notificacao(BaseModel):
     id: str
     tipo: str  # deposito_pendente, deposito_aprovado, deposito_rejeitado
-    usuario_id: Optional[str]  # None para notificações de admin
+    usuario_id: Optional[str] = None  # None para notificações de admin
     mensagem: str
     data: datetime
     lida: bool = False
     dados: Optional[dict] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class DepositoPendente(BaseModel):
+    id: str
+    usuario_id: str
+    valor: float
+    descricao: str
+    data_solicitacao: datetime
+    status: str
+    nome_usuario: Optional[str] = None
 
 class TransacaoResponse(BaseModel):
     id: str
