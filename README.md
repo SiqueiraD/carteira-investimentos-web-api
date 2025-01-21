@@ -208,6 +208,28 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 └── README.md
 ```
 
+## Tecnologias Principais
+
+### Backend
+- **FastAPI**: Framework web moderno e rápido para construção de APIs com Python
+- **PyMongo**: Driver oficial do MongoDB para Python, usado para interação com o banco de dados
+- **Python-Jose**: Biblioteca para manipulação de tokens JWT (JSON Web Tokens)
+- **Pydantic**: Biblioteca para validação de dados e gerenciamento de configurações
+- **Uvicorn**: Servidor ASGI de alta performance para Python
+
+### Banco de Dados
+- **MongoDB**: Banco de dados NoSQL utilizado para armazenamento dos dados
+- **Azure Cosmos DB API for MongoDB**: Serviço de banco de dados distribuído da Microsoft
+
+### Segurança
+- **Passlib**: Biblioteca para hash de senhas
+- **Python-Multipart**: Suporte para formulários multipart
+- **JWT (JSON Web Tokens)**: Para autenticação e autorização de usuários
+
+### Testes
+- **Pytest**: Framework de testes
+- **Requests**: Biblioteca HTTP para Python, utilizada nos testes de integração
+
 ## Endpoints da API
 
 - `POST /api/usuarios/registrar`: Registro de usuário
