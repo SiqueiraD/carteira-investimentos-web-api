@@ -39,6 +39,7 @@ class Acao(MongoBaseModel):
 class CarteiraAcao(MongoBaseModel):
     acao_id: PyObjectId
     qtd: int
+    preco_compra: float = 0.0
 
 class Carteira(MongoBaseModel):
     usuario_id: PyObjectId

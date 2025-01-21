@@ -20,7 +20,7 @@ class UsuarioUpdate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    tipo_usuario: str = "comum"
+    tipo_usuario: str
 
 class CompraAcao(BaseModel):
     acao_id: str
@@ -33,7 +33,6 @@ class AcaoCreate(BaseModel):
     risco: int
 
 class AcaoUpdate(BaseModel):
-    nome: Optional[str] = None
     preco: Optional[float] = None
     qtd: Optional[int] = None
     risco: Optional[int] = None
@@ -78,3 +77,40 @@ class CarteiraComUsuario(BaseModel):
 
     class Config:
         populate_by_name = True
+
+class SolicitacaoDeposito(BaseModel):
+    valor: float = Field(..., gt=0)
+    descricao: Optional[str] = None
+
+class SolicitacaoDepositoResponse(BaseModel):
+    id: str
+    usuario_id: str
+    valor: float
+    descricao: Optional[str]
+    status: str  # pendente, aprovado, rejeitado
+    data_solicitacao: datetime
+    data_aprovacao: Optional[datetime] = None
+    aprovado_por: Optional[str] = None
+
+class AprovarDeposito(BaseModel):
+    aprovado: bool
+    motivo_rejeicao: Optional[str] = None
+
+class Notificacao(BaseModel):
+    id: str
+    tipo: str  # deposito_pendente, deposito_aprovado, deposito_rejeitado
+    usuario_id: Optional[str]  # None para notificações de admin
+    mensagem: str
+    data: datetime
+    lida: bool = False
+    dados: Optional[dict] = None
+
+class TransacaoResponse(BaseModel):
+    id: str
+    usuario_id: str
+    acao_id: str
+    tipo: str  # compra, venda, deposito
+    qtd: Optional[int]
+    valor: float
+    preco_unitario: Optional[float]
+    data: datetime

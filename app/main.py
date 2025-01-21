@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app import models, schemas, auth
-from app.database import usuarios, acoes, carteiras, transacoes, notificacoes, relatorios, precos_referencia, init_db
+from app.database import usuarios, acoes, carteiras, transacoes, notificacoes, relatorios, depositos, init_db
 from app.config import get_settings
 from typing import List
 from bson import ObjectId
@@ -73,7 +73,7 @@ def login(usuario: schemas.UsuarioLogin):
             detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = auth.create_access_token(data={"sub": usuario.email})
+    token = auth.create_access_token(data={"sub": usuario.email, "tipo_usuario": user["tipo_usuario"]})
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -112,7 +112,7 @@ def obter_acao(acao_id: str, _: dict = Depends(get_current_user)):
 @app.post("/api/acoes/cadastrar", response_model=models.Acao, tags=["Ações"])
 def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_current_user)):
     # Verificar permissões
-    if user.get("tipo_usuario") not in ["admin", "bot"]:
+    if user["tipo_usuario"] != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Criar ação
@@ -121,35 +121,54 @@ def cadastrar_acoes(acao: schemas.AcaoCreate, user: dict = Depends(get_current_u
     acao_criada = acoes.find_one({"_id": resultado.inserted_id})
     if not acao_criada:
         raise HTTPException(status_code=500, detail="Erro ao cadastrar ação")
+    
     return models.Acao(
         _id=str(acao_criada["_id"]),
         nome=acao_criada["nome"],
         preco=acao_criada["preco"],
-        qtd=acao_criada["qtd"],
+        qtd=acao_criada.get("qtd", 0),
         risco=acao_criada.get("risco", 1)
     )
 
 @app.patch("/api/acoes/{acao_id}", response_model=models.Acao, tags=["Ações"])
 def atualizar_acoes(acao_id: str, acao: schemas.AcaoUpdate, user: dict = Depends(get_current_user)):
     # Verificar permissões
-    if user.get("tipo_usuario") not in ["admin", "bot"]:
+    if user["tipo_usuario"] != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Atualizar ação
-    acao_dict = acao.model_dump(exclude_unset=True)
-    resultado = acoes.update_one({"_id": ObjectId(acao_id)}, {"$set": acao_dict})
-    if resultado.matched_count == 0:
+    # Verificar se a ação existe
+    acao_atual = acoes.find_one({"_id": ObjectId(acao_id)})
+    if not acao_atual:
         raise HTTPException(status_code=404, detail="Ação não encontrada")
     
-    acao_atualizada = acoes.find_one({"_id": ObjectId(acao_id)})
-    if not acao_atualizada:
+    # Criar dicionário com os campos a serem atualizados
+    atualizacao = {}
+    if acao.preco is not None:
+        atualizacao["preco"] = acao.preco
+    if acao.qtd is not None:
+        atualizacao["qtd"] = acao.qtd
+    if acao.risco is not None:
+        atualizacao["risco"] = acao.risco
+    
+    if not atualizacao:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+    
+    # Atualizar ação
+    resultado = acoes.find_one_and_update(
+        {"_id": ObjectId(acao_id)},
+        {"$set": atualizacao},
+        return_document=True
+    )
+    
+    if not resultado:
         raise HTTPException(status_code=500, detail="Erro ao atualizar ação")
+    
     return models.Acao(
-        _id=str(acao_atualizada["_id"]),
-        nome=acao_atualizada["nome"],
-        preco=acao_atualizada["preco"],
-        qtd=acao_atualizada["qtd"],
-        risco=acao_atualizada.get("risco", 1)
+        _id=str(resultado["_id"]),
+        nome=resultado["nome"],
+        preco=resultado["preco"],
+        qtd=resultado.get("qtd", 0),
+        risco=resultado.get("risco", 1)
     )
 
 # Rotas de carteira
@@ -175,7 +194,8 @@ def obter_carteira(usuario: dict = Depends(get_current_user)):
         acoes=[
             models.CarteiraAcao(
                 acao_id=str(acao["acao_id"]),
-                qtd=acao["qtd"]
+                qtd=acao["qtd"],
+                preco_compra=acao.get("preco_compra", 0.0)
             )
             for acao in carteira["acoes"]
         ],
@@ -184,6 +204,192 @@ def obter_carteira(usuario: dict = Depends(get_current_user)):
         qtd_max_valor=carteira.get("qtd_max_valor", 100000.0),
         nivel_risco=carteira.get("nivel_risco", 1)
     )
+
+@app.post("/api/carteira/deposito", response_model=schemas.SolicitacaoDepositoResponse, tags=["Carteira"])
+def solicitar_deposito(
+    deposito: schemas.SolicitacaoDeposito,
+    usuario: dict = Depends(get_current_user)
+):
+    # Criar solicitação de depósito
+    deposito_dict = {
+        "usuario_id": ObjectId(usuario["_id"]),
+        "valor": deposito.valor,
+        "descricao": deposito.descricao,
+        "status": "pendente",
+        "data_solicitacao": datetime.utcnow()
+    }
+    
+    resultado = depositos.insert_one(deposito_dict)
+    
+    # Criar notificação para admins
+    notificacao = {
+        "tipo": "deposito_pendente",
+        "usuario_id": None,  # None indica que é para todos os admins
+        "mensagem": f"Nova solicitação de depósito de R$ {deposito.valor:.2f} do usuário {usuario['email']}",
+        "data": datetime.utcnow(),
+        "lida": False,
+        "dados": {
+            "deposito_id": str(resultado.inserted_id),
+            "valor": deposito.valor,
+            "usuario_email": usuario["email"]
+        }
+    }
+    notificacoes.insert_one(notificacao)
+    
+    deposito_criado = depositos.find_one({"_id": resultado.inserted_id})
+    return schemas.SolicitacaoDepositoResponse(
+        id=str(deposito_criado["_id"]),
+        usuario_id=str(deposito_criado["usuario_id"]),
+        valor=deposito_criado["valor"],
+        descricao=deposito_criado.get("descricao"),
+        status=deposito_criado["status"],
+        data_solicitacao=deposito_criado["data_solicitacao"],
+        data_aprovacao=deposito_criado.get("data_aprovacao"),
+        aprovado_por=deposito_criado.get("aprovado_por")
+    )
+
+@app.post("/api/carteira/deposito/{deposito_id}/aprovar", response_model=schemas.SolicitacaoDepositoResponse, tags=["Carteira"])
+def aprovar_deposito(
+    deposito_id: str,
+    aprovacao: schemas.AprovarDeposito,
+    current_user: dict = Depends(get_current_user)
+):
+    # Verificar permissão
+    if current_user["tipo_usuario"] != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem aprovar depósitos")
+    
+    # Buscar depósito
+    deposito = depositos.find_one({"_id": ObjectId(deposito_id)})
+    if not deposito:
+        raise HTTPException(status_code=404, detail="Depósito não encontrado")
+    
+    if deposito["status"] != "pendente":
+        raise HTTPException(status_code=400, detail="Este depósito já foi processado")
+    
+    agora = datetime.utcnow()
+    
+    if aprovacao.aprovado:
+        # Atualizar status do depósito
+        depositos.update_one(
+            {"_id": ObjectId(deposito_id)},
+            {
+                "$set": {
+                    "status": "aprovado",
+                    "data_aprovacao": agora,
+                    "aprovado_por": current_user["email"]
+                }
+            }
+        )
+        
+        # Atualizar saldo da carteira
+        carteira = carteiras.find_one({"usuario_id": ObjectId(deposito["usuario_id"])})
+        if not carteira:
+            # Criar carteira se não existir
+            carteira = {
+                "usuario_id": ObjectId(deposito["usuario_id"]),
+                "saldo": 0,
+                "acoes": [],
+                "qtd_max_acoes": 100,
+                "qtd_max_valor": 100000.0,
+                "nivel_risco": 1
+            }
+            carteiras.insert_one(carteira)
+        
+        # Atualizar saldo
+        carteiras.update_one(
+            {"usuario_id": ObjectId(deposito["usuario_id"])},
+            {"$inc": {"saldo": deposito["valor"]}}
+        )
+        
+        # Registrar transação
+        transacao = {
+            "usuario_id": ObjectId(deposito["usuario_id"]),
+            "tipo": "deposito",
+            "valor": deposito["valor"],
+            "data": agora
+        }
+        transacoes.insert_one(transacao)
+        
+        # Criar notificação para o usuário
+        notificacao = {
+            "tipo": "deposito_aprovado",
+            "usuario_id": str(deposito["usuario_id"]),
+            "mensagem": f"Seu depósito de R$ {deposito['valor']:.2f} foi aprovado",
+            "data": agora,
+            "lida": False,
+            "dados": {
+                "deposito_id": deposito_id,
+                "valor": deposito["valor"]
+            }
+        }
+    else:
+        # Atualizar status do depósito como rejeitado
+        depositos.update_one(
+            {"_id": ObjectId(deposito_id)},
+            {
+                "$set": {
+                    "status": "rejeitado",
+                    "data_aprovacao": agora,
+                    "aprovado_por": current_user["email"],
+                    "motivo_rejeicao": aprovacao.motivo_rejeicao
+                }
+            }
+        )
+        
+        # Criar notificação para o usuário
+        notificacao = {
+            "tipo": "deposito_rejeitado",
+            "usuario_id": str(deposito["usuario_id"]),
+            "mensagem": f"Seu depósito de R$ {deposito['valor']:.2f} foi rejeitado. Motivo: {aprovacao.motivo_rejeicao}",
+            "data": agora,
+            "lida": False,
+            "dados": {
+                "deposito_id": deposito_id,
+                "valor": deposito["valor"],
+                "motivo": aprovacao.motivo_rejeicao
+            }
+        }
+    
+    notificacoes.insert_one(notificacao)
+    
+    deposito_atualizado = depositos.find_one({"_id": ObjectId(deposito_id)})
+    return schemas.SolicitacaoDepositoResponse(
+        id=str(deposito_atualizado["_id"]),
+        usuario_id=str(deposito_atualizado["usuario_id"]),
+        valor=deposito_atualizado["valor"],
+        descricao=deposito_atualizado.get("descricao"),
+        status=deposito_atualizado["status"],
+        data_solicitacao=deposito_atualizado["data_solicitacao"],
+        data_aprovacao=deposito_atualizado.get("data_aprovacao"),
+        aprovado_por=deposito_atualizado.get("aprovado_por")
+    )
+
+@app.get("/api/notificacoes", response_model=List[schemas.Notificacao], tags=["Notificações"])
+def listar_notificacoes(current_user: dict = Depends(get_current_user)):
+    # Construir filtro baseado no tipo de usuário
+    if current_user["tipo_usuario"] == "admin":
+        # Admins veem suas notificações pessoais e todas as notificações admin
+        filtro = {
+            "$or": [
+                {"usuario_id": str(current_user["_id"])},
+                {"usuario_id": None}  # Notificações para todos os admins
+            ]
+        }
+    else:
+        # Usuários normais veem apenas suas notificações
+        filtro = {"usuario_id": str(current_user["_id"])}
+    
+    # Buscar notificações ordenadas por data
+    cursor = notificacoes.find(filtro).sort("data", -1)
+    return [{
+        "id": str(notif["_id"]),
+        "tipo": notif["tipo"],
+        "usuario_id": notif["usuario_id"],
+        "mensagem": notif["mensagem"],
+        "data": notif["data"],
+        "lida": notif.get("lida", False),
+        "dados": notif.get("dados")
+    } for notif in cursor]
 
 @app.post("/api/carteira/comprar", response_model=models.Carteira, tags=["Carteira"])
 def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current_user)):
@@ -210,6 +416,13 @@ def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current
         resultado = carteiras.insert_one(carteira)
         carteira["_id"] = resultado.inserted_id
     
+    # Calcular valor total da compra
+    valor_total = acao["preco"] * compra.quantidade
+    
+    # Verificar se há saldo suficiente
+    if carteira["saldo"] < valor_total:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente")
+    
     # Verificar nível de risco
     if acao.get("risco", 1) > carteira.get("nivel_risco", 1):
         raise HTTPException(
@@ -221,7 +434,6 @@ def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current
     if len(carteira["acoes"]) >= carteira["qtd_max_acoes"]:
         raise HTTPException(status_code=400, detail="Limite de ações atingido")
     
-    valor_total = acao["preco"] * compra.quantidade
     if valor_total > carteira["qtd_max_valor"]:
         raise HTTPException(status_code=400, detail="Limite de valor atingido")
     
@@ -237,8 +449,12 @@ def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current
     else:
         carteira["acoes"].append({
             "acao_id": ObjectId(compra.acao_id),
-            "qtd": compra.quantidade
+            "qtd": compra.quantidade,
+            "preco_compra": acao["preco"]  # Registrar preço de compra
         })
+    
+    # Atualizar saldo da carteira
+    carteira["saldo"] -= valor_total
     
     # Atualizar banco de dados
     carteiras.update_one(
@@ -257,11 +473,13 @@ def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current
         "acao_id": ObjectId(compra.acao_id),
         "tipo": "compra",
         "qtd": compra.quantidade,
+        "valor": valor_total,
+        "preco_unitario": acao["preco"],
         "data": datetime.utcnow()
     }
     transacoes.insert_one(transacao)
     
-    # Retornar carteira atualizada
+    # Retornar carteira atualizada com preços de compra
     carteira_atualizada = carteiras.find_one({"_id": carteira["_id"]})
     return models.Carteira(
         _id=str(carteira_atualizada["_id"]),
@@ -269,11 +487,12 @@ def comprar_acao(compra: schemas.CompraAcao, usuario: dict = Depends(get_current
         acoes=[
             models.CarteiraAcao(
                 acao_id=str(acao["acao_id"]),
-                qtd=acao["qtd"]
+                qtd=acao["qtd"],
+                preco_compra=acao.get("preco_compra", 0.0)
             )
             for acao in carteira_atualizada["acoes"]
         ],
-        saldo=carteira_atualizada.get("saldo", 0.0),
+        saldo=carteira_atualizada["saldo"],
         qtd_max_acoes=carteira_atualizada.get("qtd_max_acoes", 100),
         qtd_max_valor=carteira_atualizada.get("qtd_max_valor", 100000.0),
         nivel_risco=carteira_atualizada.get("nivel_risco", 1)
@@ -404,102 +623,3 @@ def buscar_carteira_por_usuario(usuario_id: str, current_user: dict = Depends(ge
         qtd_max_valor=carteira.get("qtd_max_valor", 100000.0),
         nivel_risco=carteira.get("nivel_risco", 1)
     )
-
-# Rotas de preços de referência
-@app.post("/api/precos/cadastrar", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-def cadastrar_preco_referencia(
-    preco: schemas.PrecoReferenciaCreate,
-    current_user: dict = Depends(get_current_user)
-):
-    # Verificar permissão
-    if current_user["tipo_usuario"] not in ["admin", "bot"]:
-        raise HTTPException(status_code=403, detail="Acesso negado")
-    
-    # Verificar se a ação existe
-    acao = acoes.find_one({"_id": ObjectId(preco.acao_id)})
-    if not acao:
-        raise HTTPException(status_code=404, detail="Ação não encontrada")
-    
-    # Criar preço de referência
-    preco_dict = {
-        "acao_id": preco.acao_id,
-        "preco_referencia": preco.preco_referencia,
-        "data_atualizacao": datetime.utcnow(),
-        "atualizado_por": current_user["email"]
-    }
-    
-    try:
-        resultado = precos_referencia.insert_one(preco_dict)
-        preco_criado = precos_referencia.find_one({"_id": resultado.inserted_id})
-        return {
-            "id": str(preco_criado["_id"]),
-            "acao_id": preco_criado["acao_id"],
-            "preco_referencia": preco_criado["preco_referencia"],
-            "data_atualizacao": preco_criado["data_atualizacao"],
-            "atualizado_por": preco_criado["atualizado_por"]
-        }
-    except DuplicateKeyError:
-        raise HTTPException(status_code=400, detail="Já existe um preço de referência para esta ação")
-
-@app.put("/api/precos/{acao_id}", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-def atualizar_preco_referencia(
-    acao_id: str,
-    preco: schemas.PrecoReferenciaUpdate,
-    current_user: dict = Depends(get_current_user)
-):
-    # Verificar permissão
-    if current_user["tipo_usuario"] not in ["admin", "bot"]:
-        raise HTTPException(status_code=403, detail="Acesso negado")
-    
-    # Atualizar preço
-    resultado = precos_referencia.find_one_and_update(
-        {"acao_id": acao_id},
-        {
-            "$set": {
-                "preco_referencia": preco.preco_referencia,
-                "data_atualizacao": datetime.utcnow(),
-                "atualizado_por": current_user["email"]
-            }
-        },
-        return_document=True
-    )
-    
-    if not resultado:
-        raise HTTPException(status_code=404, detail="Preço de referência não encontrado")
-    
-    return {
-        "id": str(resultado["_id"]),
-        "acao_id": resultado["acao_id"],
-        "preco_referencia": resultado["preco_referencia"],
-        "data_atualizacao": resultado["data_atualizacao"],
-        "atualizado_por": resultado["atualizado_por"]
-    }
-
-@app.get("/api/precos", response_model=List[schemas.PrecoReferenciaResponse], tags=["Preços de Referência"])
-def listar_precos_referencia(_: dict = Depends(get_current_user)):
-    cursor = precos_referencia.find()
-    precos_list = list(cursor)
-    return [
-        {
-            "id": str(preco["_id"]),
-            "acao_id": preco["acao_id"],
-            "preco_referencia": preco["preco_referencia"],
-            "data_atualizacao": preco["data_atualizacao"],
-            "atualizado_por": preco["atualizado_por"]
-        }
-        for preco in precos_list
-    ]
-
-@app.get("/api/precos/{acao_id}", response_model=schemas.PrecoReferenciaResponse, tags=["Preços de Referência"])
-def obter_preco_referencia(acao_id: str, _: dict = Depends(get_current_user)):
-    preco = precos_referencia.find_one({"acao_id": acao_id})
-    if not preco:
-        raise HTTPException(status_code=404, detail="Preço de referência não encontrado")
-    
-    return {
-        "id": str(preco["_id"]),
-        "acao_id": preco["acao_id"],
-        "preco_referencia": preco["preco_referencia"],
-        "data_atualizacao": preco["data_atualizacao"],
-        "atualizado_por": preco["atualizado_por"]
-    }

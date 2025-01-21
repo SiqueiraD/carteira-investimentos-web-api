@@ -39,13 +39,13 @@ carteiras = database.carteiras
 transacoes = database.transacoes
 notificacoes = database.notificacoes
 relatorios = database.relatorios
-precos_referencia = database.precos_referencia
+depositos = database.depositos
 
 def init_db():
-    """Initialize database with required collections"""
+    """Initialize database with required collections and indexes"""
     try:
         # Lista de coleções necessárias
-        collections = ["usuarios", "acoes", "carteiras", "transacoes", "notificacoes", "relatorios", "precos_referencia"]
+        collections = ["usuarios", "acoes", "carteiras", "transacoes", "notificacoes", "relatorios", "depositos"]
         
         # Criar coleções se não existirem
         existing_collections = database.list_collection_names()
@@ -54,9 +54,22 @@ def init_db():
                 database.create_collection(collection)
                 logger.info(f"Coleção {collection} criada com sucesso!")
         
-        # Criar índices necessários
+        # Índices para usuários
         usuarios.create_index("email", unique=True)
-        acoes.create_index("nome", unique=True)
+        
+        # Índices para carteiras
+        carteiras.create_index("usuario_id", unique=True)
+        
+        # Índices para transações
+        transacoes.create_index([("usuario_id", 1), ("data", -1)])
+        transacoes.create_index("acao_id")
+        
+        # Índices para notificações
+        notificacoes.create_index([("usuario_id", 1), ("lida", 1), ("data", -1)])
+        notificacoes.create_index("tipo")
+        
+        # Índices para depósitos
+        depositos.create_index([("usuario_id", 1), ("status", 1), ("data_solicitacao", -1)])
         
         logger.info("Inicialização do banco de dados concluída!")
     except Exception as e:

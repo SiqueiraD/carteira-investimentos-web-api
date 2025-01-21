@@ -49,6 +49,7 @@ def get_current_user(token: str, credentials_exception: HTTPException):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
+        tipo_usuario: str = payload.get("tipo_usuario")
         if email is None:
             raise credentials_exception
     except JWTError:
