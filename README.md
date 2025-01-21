@@ -5,9 +5,7 @@ API para gerenciamento de investimentos em ações, desenvolvida com FastAPI e M
 ## Requisitos
 
 - Python 3.11 ou superior
-- pip (gerenciador de pacotes Python)
 - MongoDB
-- Git
 
 ## Configuração do Ambiente Local
 
@@ -226,9 +224,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - **Python-Multipart**: Suporte para formulários multipart
 - **JWT (JSON Web Tokens)**: Para autenticação e autorização de usuários
 
-### Testes
-- **Pytest**: Framework de testes
-- **Requests**: Biblioteca HTTP para Python, utilizada nos testes de integração
 
 ## Endpoints da API
 
