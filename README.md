@@ -1,188 +1,48 @@
-# API de Investimentos
+# Investimentos Web
 
-API para gerenciamento de investimentos em ações, desenvolvida com FastAPI e MongoDB.
+Sistema web para gerenciamento de investimentos, permitindo que usuários realizem operações de compra e venda de ações, além de acompanhar seu portfólio.
 
 ## Requisitos
 
 - Python 3.11 ou superior
-- MongoDB
+- MongoDB ou Azure Cosmos DB com API do MongoDB
+- Variáveis de ambiente configuradas (ver seção de Configuração)
 
-## Configuração do Ambiente Local
+## Configuração
 
-1. **Clone o repositório**
-   ```bash
-   git clone [URL_DO_REPOSITORIO]
-   cd investimentos-web-dev
-   ```
-
-2. **Crie e ative um ambiente virtual**
-   ```bash
-   # Windows
-   python -m venv venv
-   .\venv\Scripts\activate
-
-   # Linux/MacOS
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Instale as dependências**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure as variáveis de ambiente**
-   - Crie um arquivo `.env` na raiz do projeto
-   - Adicione as seguintes variáveis:
-     ```env
-     MONGODB_URL=sua_url_do_mongodb
-     SECRET_KEY=sua_chave_secreta
-     ```
-
-## Executando a Aplicação
-
-1. **Inicie o servidor de desenvolvimento**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-2. **Acesse a documentação da API**
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
-
-## Executando os Testes
-
+1. Clone o repositório
+2. Crie e ative um ambiente virtual Python
+3. Instale as dependências:
 ```bash
-# Executar todos os testes
-pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml
-
-# Executar testes específicos
-pytest tests/test_main.py -v
+pip install -r requirements.txt
 ```
 
-## Deploy no Azure
-
-O projeto pode ser implantado no Azure usando os recursos criados pelo Terraform.
-
-### Pré-requisitos
-
-1. **Azure CLI** instalado e configurado
-2. **WSL Ubuntu** para executar os scripts de deploy
-3. **Terraform** para criar os recursos (opcional, se já não estiverem criados)
-
-### Criando os Recursos (opcional)
-
-Se os recursos ainda não existirem, você pode criá-los com o Terraform:
-
+4. Configure as variáveis de ambiente:
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
+# Desenvolvimento
+ENVIRONMENT=development
+MONGODB_URL=sua_url_mongodb
+JWT_SECRET=sua_chave_secreta
+
+# Produção
+ENVIRONMENT=production
+MONGODB_URL=sua_url_cosmosdb
+JWT_SECRET=sua_chave_secreta
+API_BASE_URL=sua_url_base
 ```
 
-### Deploy da Aplicação
+## Como Executar
 
-1. **Preparar o ambiente WSL**
-   ```bash
-   # No Windows, abra o WSL Ubuntu
-   wsl
-   
-   # Navegue até o diretório do projeto
-   cd /mnt/c/Projetos/CascadeProjects/windsurf-project
-   
-   # Torne o script de deploy executável
-   chmod +x deploy.sh
-   ```
+1. Certifique-se que o MongoDB está rodando
+2. Execute o servidor:
+```bash
+uvicorn app.main:app --reload
+```
 
-2. **Execute o script de deploy**
-   ```bash
-   ./deploy.sh
-   ```
-
-O script irá:
-- Obter a chave do Cosmos DB
-- Configurar as variáveis de ambiente no Web App
-- Criar um arquivo de deploy
-- Fazer o upload da aplicação
-- Limpar os arquivos temporários
-
-### Verificando o Deploy
-
-1. Acesse a URL da aplicação:
-   ```
-   https://webapp-investimentos-api-003.azurewebsites.net
-   ```
-
-2. Verifique os logs no portal do Azure ou use o comando:
-   ```bash
-   az webapp log tail --name webapp-investimentos-api-003 --resource-group rg-investimentos-api-003
-   ```
-
-### Configuração de Ambiente
-
-A aplicação suporta dois ambientes:
-
-1. **Local**
-   - Usa MongoDB local
-   - Configurado através do arquivo `.env`
-   - Ideal para desenvolvimento
-
-2. **Produção (Azure)**
-   - Usa Azure Cosmos DB com API MongoDB
-   - Configurado através das variáveis de ambiente do Web App
-   - Deploy automático via script
-
-## Como Contribuir
-
-1. **Fork o projeto**
-   - Clique no botão "Fork" no canto superior direito da página
-
-2. **Clone seu fork**
-   ```bash
-   git clone [URL_DO_SEU_FORK]
-   ```
-
-3. **Crie uma branch para sua feature**
-   ```bash
-   git checkout -b feature/nome-da-feature
-   ```
-
-4. **Faça suas alterações**
-   - Siga o estilo de código do projeto
-   - Adicione testes para novas funcionalidades
-   - Mantenha a documentação atualizada
-
-5. **Commit suas alterações**
-   ```bash
-   git commit -m "feat: adiciona nova funcionalidade"
-   ```
-   > Siga o padrão de commits convencionais:
-   > - feat: nova funcionalidade
-   > - fix: correção de bug
-   > - docs: alteração na documentação
-   > - test: adição/modificação de testes
-   > - refactor: refatoração de código
-
-6. **Push para seu fork**
-   ```bash
-   git push origin feature/nome-da-feature
-   ```
-
-7. **Crie um Pull Request**
-   - Abra um PR do seu fork para o repositório principal
-   - Descreva suas alterações detalhadamente
-   - Referencie issues relacionadas
-
-## Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## Suporte
-
-- Abra uma issue para reportar bugs ou sugerir melhorias
-- Consulte a documentação da API para dúvidas sobre endpoints
-- Entre em contato com a equipe de desenvolvimento para questões mais específicas
+3. Acesse a documentação da API em:
+```
+http://localhost:8000/docs
+```
 
 ## Estrutura do Projeto
 
@@ -190,20 +50,14 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 .
 ├── app/
 │   ├── __init__.py
-│   ├── main.py          # Aplicação FastAPI
-│   ├── config.py        # Configurações
-│   ├── models.py        # Modelos Pydantic
-│   ├── schemas.py       # Schemas de validação
-│   ├── database.py      # Conexão MongoDB
-│   └── auth.py          # Autenticação JWT
-├── terraform/
-│   ├── main.tf          # Recursos Azure
-│   ├── variables.tf     # Variáveis Terraform
-│   └── outputs.tf       # Outputs Terraform
-├── requirements.txt     # Dependências Python
-├── local.py            # Servidor desenvolvimento
-├── function_app.py     # Entrada Azure Functions
-└── README.md
+│   ├── main.py          # Endpoints da API
+│   ├── auth.py          # Autenticação e autorização
+│   ├── database.py      # Configuração do banco de dados
+│   ├── models.py        # Modelos de dados
+│   └── schemas.py       # Schemas de validação
+├── tests/               # Testes da aplicação
+├── requirements.txt     # Dependências do projeto
+└── README.md           # Este arquivo
 ```
 
 ## Tecnologias Principais
@@ -224,26 +78,152 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - **Python-Multipart**: Suporte para formulários multipart
 - **JWT (JSON Web Tokens)**: Para autenticação e autorização de usuários
 
+## Infraestrutura na Azure
+
+O projeto é hospedado na Azure usando uma arquitetura moderna e escalável:
+
+### Componentes Principais
+
+- **Azure App Service**: Hospeda a API FastAPI em um ambiente gerenciado
+  - Configurado com Python 3.11
+  - Escalamento automático baseado em carga
+  - SSL/TLS habilitado por padrão
+
+- **Azure Cosmos DB**: Banco de dados distribuído
+  - API compatível com MongoDB
+  - Escalabilidade global
+  - Backups automáticos
+  - Baixa latência para operações de leitura/escrita
+
+- **Azure Key Vault**: Gerenciamento seguro de segredos
+  - Armazena chaves de API e credenciais
+  - Rotação automática de segredos
+  - Integração com identidades gerenciadas
+
+### Monitoramento e Logging
+
+- **Application Insights**: Telemetria e monitoramento
+  - Rastreamento de requisições
+  - Métricas de performance
+  - Logs de aplicação
+  - Alertas configuráveis
+
+- **Azure Monitor**: Monitoramento da infraestrutura
+  - Métricas do App Service
+  - Uso do Cosmos DB
+  - Dashboards personalizados
+
+### Segurança
+
+- **Azure AD**: Gerenciamento de identidades
+  - Autenticação de serviços
+  - Identidades gerenciadas
+  - Controle de acesso baseado em papéis (RBAC)
+
+- **Azure Front Door**: CDN e WAF
+  - Proteção contra DDoS
+  - SSL/TLS gerenciado
+  - Regras de segurança personalizadas
+
+### Diagrama de Arquitetura
+
+```
+┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Azure Front   │     │              │     │   Cosmos DB  │
+│     Door       │────▶│  App Service  │────▶│  MongoDB API │
+└─────────────────┘     │   (FastAPI)  │     └─────────────┘
+                        └──────────────┘            ▲
+                              │                     │
+                              ▼                     │
+                        ┌──────────────┐     ┌─────────────┐
+                        │   Key Vault  │     │Application  │
+                        │             │     │  Insights   │
+                        └──────────────┘     └─────────────┘
+```
+
+## Funcionalidades
+
+- **Usuários**
+  - Registro e autenticação
+  - Perfis: admin e comum
+  - Gerenciamento de carteira
+
+- **Investimentos**
+  - Compra e venda de ações
+  - Acompanhamento de carteira
+  - Histórico de transações
+
+- **Depósitos**
+  - Solicitação de depósitos
+  - Aprovação por administradores
+  - Controle de limites
 
 ## Endpoints da API
 
-- `POST /api/usuarios/registrar`: Registro de usuário
+### Usuários
+- `POST /api/usuarios/registrar`: Registro de novo usuário
 - `POST /api/usuarios/login`: Login de usuário
-- `GET /api/acoes`: Lista de ações disponíveis
+
+### Carteira
+- `GET /api/carteira`: Consulta carteira do usuário
 - `POST /api/carteira/comprar`: Compra de ações
-- `PATCH /api/carteiras/{usuario_id}/limites`: Atualiza limites da carteira (admin)
-- `POST /api/relatorios/gerar`: Gera relatório de investimentos
-- `GET /api/relatorios`: Lista relatórios do usuário
+- `POST /api/carteira/vender`: Venda de ações
+- `POST /api/carteira/deposito`: Solicita depósito
 
-## Segurança
+### Ações
+- `GET /api/acoes`: Lista ações disponíveis
+- `POST /api/acoes/cadastrar`: Cadastra nova ação (admin)
 
-- Autenticação JWT
-- Azure Key Vault para segredos em produção
-- HTTPS em produção
-- Validação de dados com Pydantic
+### Depósitos
+- `GET /api/depositos/pendentes`: Lista depósitos pendentes (admin)
+- `POST /api/carteira/deposito/{id}/aprovar`: Aprova/rejeita depósito (admin)
 
-## Monitoramento
+## Boas Práticas Implementadas
 
-- Azure Application Insights para logs e métricas
-- Monitoramento de performance com Azure Functions
-- Logs de transações no MongoDB
+### Segurança
+- Autenticação JWT com chaves rotacionadas
+- Senhas armazenadas com hash seguro (bcrypt)
+- Validação de entrada com Pydantic
+- CORS configurado adequadamente
+- Rate limiting para endpoints sensíveis
+
+### Performance
+- Índices otimizados no MongoDB
+- Caching de consultas frequentes
+- Paginação em endpoints de lista
+- Compressão de resposta HTTP
+- Conexões de banco de dados pooling
+
+### Desenvolvimento
+- Documentação automática com Swagger/OpenAPI
+- Testes de integração automatizados
+- Logging estruturado
+- Versionamento de API
+- Ambiente de desenvolvimento containerizado
+
+### Operacional
+- Backups automáticos do banco de dados
+- Monitoramento proativo
+- Logs centralizados
+- Escalamento automático
+- Deploys com zero downtime
+
+## Roadmap
+
+### Próximas Funcionalidades
+- [ ] Integração com provedores de dados de mercado em tempo real
+- [ ] Sistema de notificações por email/push
+- [ ] Relatórios personalizados em PDF
+- [ ] Dashboard interativo para análise de investimentos
+- [ ] Suporte a criptomoedas
+
+### Melhorias Técnicas
+- [ ] Migração para arquitetura de microsserviços
+- [ ] Implementação de GraphQL
+- [ ] Cache distribuído com Redis
+- [ ] CI/CD com GitHub Actions
+- [ ] Testes de carga automatizados
+
+## Suporte
+
+Para dúvidas ou problemas, abra uma issue no repositório.
