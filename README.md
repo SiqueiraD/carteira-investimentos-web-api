@@ -2,6 +2,18 @@
 
 Sistema web para gerenciamento de investimentos, permitindo que usuários realizem operações de compra e venda de ações, além de acompanhar seu portfólio.
 
+## Demonstração
+
+Uma versão de demonstração da API está disponível para testes:
+- **Documentação Swagger**: [https://webapp-investimentos-api-003.azurewebsites.net/docs](https://webapp-investimentos-api-003.azurewebsites.net/docs)
+
+Para testar a API, você pode:
+1. Registrar um novo usuário em `/api/usuarios/registrar`
+2. Fazer login em `/api/usuarios/login`
+3. Usar o token JWT retornado para acessar os demais endpoints
+
+> **Nota**: Esta é uma versão de demonstração temporária para avaliação.
+
 ## Requisitos
 
 - Python 3.11 ou superior
